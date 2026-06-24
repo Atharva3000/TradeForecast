@@ -69,7 +69,19 @@ SCAN_UNIVERSE: dict[str, list[tuple[str, str]]] = {
     ],
 }
 
-RESULTS_PATH = os.path.join(_PROJECT_ROOT, "market_scan_results.json")
+# Determine results path dynamically based on filesystem write access (useful for Vercel)
+if os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL") is not None:
+    RESULTS_PATH = "/tmp/market_scan_results.json"
+else:
+    _local_path = os.path.join(_PROJECT_ROOT, "market_scan_results.json")
+    try:
+        _test_path = _local_path + ".test"
+        with open(_test_path, "w") as f:
+            f.write("")
+        os.remove(_test_path)
+        RESULTS_PATH = _local_path
+    except (IOError, OSError, PermissionError):
+        RESULTS_PATH = "/tmp/market_scan_results.json"
 
 
 def _detect_currency_symbol(ticker: str) -> str:

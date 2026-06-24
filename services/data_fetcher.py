@@ -15,6 +15,14 @@ from datetime import datetime
 
 import pandas as pd
 import yfinance as yf
+import os
+
+# Configure yfinance timezone cache directory for Vercel / read-only filesystem
+try:
+    if os.environ.get("VERCEL") or not os.access(".", os.W_OK):
+        yf.set_tz_cache_location("/tmp")
+except Exception:
+    pass
 
 logger = logging.getLogger(__name__)
 

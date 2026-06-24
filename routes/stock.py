@@ -94,8 +94,8 @@ async def get_predictions_batch(
 @router.get("/api/predict/{ticker}")
 async def get_prediction(
     ticker: str,
-    timeframe: str = Query(default="1M"),
-    model: str = Query(default="linear"),
+    timeframe: str = "1M",
+    model: str = "linear",
 ):
     """
     Run the full prediction pipeline for a stock ticker.
@@ -341,7 +341,11 @@ def _run_scanner_sync():
 @router.get("/api/scan")
 async def get_scan_results():
     """Serve the saved market scan results."""
-    if not os.path.exists(SCAN_RESULTS_PATH):
+    # Check if a refreshed scan exists in /tmp first, fallback to bundled scan
+    tmp_path = "/tmp/market_scan_results.json"
+    target_path = tmp_path if os.path.exists(tmp_path) else SCAN_RESULTS_PATH
+    
+    if not os.path.exists(target_path):
         return {
             "scan_time": "Never Scanned",
             "categories": {},
@@ -349,7 +353,7 @@ async def get_scan_results():
             "overall_top_tomorrow": [],
         }
     try:
-        with open(SCAN_RESULTS_PATH, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         return data
     except Exception as e:

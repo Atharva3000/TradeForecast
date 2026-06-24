@@ -12,6 +12,15 @@ import logging
 import os
 import time
 
+# Configure yfinance timezone cache directory for Vercel / read-only filesystem
+try:
+    import yfinance as yf
+    if os.environ.get("VERCEL") or not os.access(".", os.W_OK):
+        yf.set_tz_cache_location("/tmp")
+except Exception as e:
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger(__name__).warning("Failed to configure yfinance cache directory: %s", e)
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -84,8 +93,9 @@ async def startup_event():
     # Initialize the database (SQLite)
     init_db()
     
-    # Preload watchlist prediction data
-    asyncio.create_task(preload_sector_predictions())
+    # Preload watchlist prediction data (only if not on VERCEL to optimize cold starts)
+    if not os.environ.get("VERCEL"):
+        asyncio.create_task(preload_sector_predictions())
 
 
 
