@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+yfinance
+scikit-learn
+pandas
+numpy
+gradio
+plotly

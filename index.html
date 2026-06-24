@@ -1,0 +1,2708 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TradeForecast — NSE &amp; BSE Market Intelligence</title>
+  <meta name="description" content="TradeForecast: Real-time predictions for NSE &amp; BSE stocks. Track Nifty 50, Sensex, Bank Nifty &mdash; powered by quantitative consensus and TradingView.">
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <!-- Google OAuth -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: ["selector", "[data-theme='dark']"],
+      theme: {
+        extend: {
+          colors: {
+            accent:     "#00e290",
+            "accent-dim":"#52ffac",
+            "accent-glow":"rgba(0,226,144,0.18)",
+            danger:     "#ff5050",
+            warn:       "#f59e0b",
+            info:       "#60a5fa",
+          },
+          fontFamily: {
+            mono: ["JetBrains Mono", "monospace"],
+            sans: ["Inter", "sans-serif"],
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* ── CSS VARIABLE THEME SYSTEM ───────────────────── */
+    :root {
+      --bg:          #10131a;
+      --bg-raised:   #1d2026;
+      --bg-card:     rgba(22,27,34,0.78);
+      --bg-card-b:   rgba(255,255,255,0.065);
+      --text:        #e1e2eb;
+      --text-dim:    #9aa5b4;
+      --text-muted:  #5a6475;
+      --border:      rgba(255,255,255,0.07);
+      --border-accent:rgba(0,255,163,0.25);
+      --scanline:    rgba(255,255,255,0.015);
+      --scrollbar-bg:#0b0e14;
+      --scrollbar-th:#32353c;
+      --input-bg:    #1d2026;
+      --header-bg:   rgba(16,19,26,0.85);
+      --sidebar-bg:  rgba(11,14,20,0.90);
+    }
+    [data-theme="light"] {
+      --bg:          #f0f2f5;
+      --bg-raised:   #ffffff;
+      --bg-card:     rgba(255,255,255,0.88);
+      --bg-card-b:   rgba(0,0,0,0.06);
+      --text:        #111827;
+      --text-dim:    #4b5563;
+      --text-muted:  #9ca3af;
+      --border:      rgba(0,0,0,0.08);
+      --border-accent:rgba(0,180,120,0.3);
+      --scanline:    transparent;
+      --scrollbar-bg:#e5e7eb;
+      --scrollbar-th:#d1d5db;
+      --input-bg:    #f9fafb;
+      --header-bg:   rgba(240,242,245,0.92);
+      --sidebar-bg:  rgba(255,255,255,0.95);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* Scanline overlay (dark only) */
+    body::after {
+      content: "";
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(transparent, transparent 1px, var(--scanline) 1px, var(--scanline) 2px);
+      pointer-events: none; z-index: 9999;
+    }
+
+    /* ── GLASS CARDS ───────────────────────────────────── */
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--bg-card-b);
+    }
+    .glass-card-accent {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-accent);
+      box-shadow: 0 0 24px rgba(0,255,163,0.06);
+    }
+
+    /* ── GLOWS ────────────────────────────────────────── */
+    .glow-emerald { box-shadow: 0 0 18px rgba(0,255,163,0.35); }
+    .glow-ruby    { box-shadow: 0 0 18px rgba(255,80,80,0.35); }
+    .glow-soft    { box-shadow: 0 0 10px rgba(0,255,163,0.12); }
+    .text-glow    { text-shadow: 0 0 12px rgba(82,255,172,0.6); }
+    [data-theme="light"] .text-glow { text-shadow: none; }
+
+    /* ── NAV ──────────────────────────────────────────── */
+    .nav-active {
+      color: #00e290;
+      background: rgba(0,226,144,0.09);
+      border-right: 2px solid #00e290;
+      box-shadow: inset -10px 0 18px -10px rgba(0,226,144,0.2);
+    }
+    [data-theme="light"] .nav-active {
+      background: rgba(0,180,100,0.1);
+      border-right: 2px solid #00b464;
+      color: #00874a;
+      box-shadow: none;
+    }
+
+    /* ── TICKER ───────────────────────────────────────── */
+    .ticker-track { display:flex; white-space:nowrap; animation: ticker-scroll 70s linear infinite; }
+    .ticker-track:hover { animation-play-state: paused; }
+    @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* ── PAGES ────────────────────────────────────────── */
+    .page { display:none; }
+    .page.active { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+
+    .scrollable { overflow-y:auto; }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-th); border-radius:3px; }
+
+    /* ── ANIMATIONS ───────────────────────────────────── */
+    @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+    .fade-up   { animation: fadeUp  0.4s ease both; }
+    .fade-in   { animation: fadeIn  0.35s ease both; }
+    .fade-up-d1{ animation-delay:0.05s; }
+    .fade-up-d2{ animation-delay:0.10s; }
+    .fade-up-d3{ animation-delay:0.15s; }
+    .fade-up-d4{ animation-delay:0.20s; }
+
+    .hover-lift { transition: transform 0.2s, box-shadow 0.2s; }
+    .hover-lift:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(0,0,0,0.3); }
+    [data-theme="light"] .hover-lift:hover { box-shadow:0 8px 24px rgba(0,0,0,0.12); }
+
+    /* ── INPUTS ───────────────────────────────────────── */
+    .cyber-input {
+      background: var(--input-bg) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text) !important;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .cyber-input:focus { border-color: #00e290; box-shadow: 0 3px 12px rgba(0,226,144,0.2); }
+
+    .cyber-btn {
+      border: 2px solid #00e290;
+      color: #00e290;
+      background: transparent;
+      box-shadow: 0 0 10px rgba(0,226,144,0.18);
+      transition: all 0.2s; cursor:pointer;
+    }
+    .cyber-btn:hover { background:rgba(0,226,144,0.1); box-shadow:0 0 24px rgba(0,226,144,0.4); }
+    .cyber-btn:active { transform:scale(0.97); }
+    .cyber-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+    [data-theme="light"] .cyber-btn { border-color:#00874a; color:#00874a; box-shadow:none; }
+    [data-theme="light"] .cyber-btn:hover { background:rgba(0,135,74,0.08); }
+
+    /* ── CHIPS ────────────────────────────────────────── */
+    .chip-buy  { background:rgba(82,255,172,0.15); border:1px solid rgba(82,255,172,0.5); color:#52ffac; }
+    .chip-sell { background:rgba(255,80,80,0.12);  border:1px solid rgba(255,80,80,0.4);  color:#ff8080; }
+    .chip-hold { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#9aa5b4; }
+    .chip-bull { background:rgba(82,255,172,0.12); border:1px solid rgba(82,255,172,0.35);color:#52ffac; }
+    .chip-bear { background:rgba(255,80,80,0.12);  border:1px solid rgba(255,80,80,0.35); color:#ff8080; }
+    [data-theme="light"] .chip-hold { background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); color:#4b5563; }
+
+    /* ── SPINNER ──────────────────────────────────────── */
+    .spinner { width:20px;height:20px;border:2px solid rgba(0,226,144,0.3);border-top-color:#00e290;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── TOGGLES ──────────────────────────────────────── */
+    .toggle-track { width:40px;height:22px;border-radius:11px;background:#32353c;display:flex;align-items:center;padding:3px;transition:background 0.25s;cursor:pointer; }
+    .toggle-track.on { background:#00e290; }
+    .toggle-thumb { width:16px;height:16px;border-radius:50%;background:#fff;transition:transform 0.25s; }
+    .toggle-track.on .toggle-thumb { transform:translateX(18px); }
+
+    /* ── BADGE ────────────────────────────────────────── */
+    .notif-badge { position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%;background:#ff5050;border:2px solid var(--bg);animation:pulse-badge 2s ease-in-out infinite; }
+    @keyframes pulse-badge { 0%,100%{box-shadow:0 0 0 0 rgba(255,80,80,0.5)} 50%{box-shadow:0 0 0 5px rgba(255,80,80,0)} }
+
+    /* ── MODALS ───────────────────────────────────────── */
+    #notif-panel { display:none;position:absolute;top:60px;right:16px;width:320px;z-index:999; }
+    #notif-panel.open { display:block; }
+    #terminal-modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center; }
+    #terminal-modal.open { display:flex; }
+    .mobile-nav-overlay { display:none; }
+    @media(max-width:767px){.mobile-nav-overlay.open{display:flex;}}
+
+    /* ── SCREENER ─────────────────────────────────────── */
+    .screener-row { transition:background 0.15s;cursor:pointer; }
+    .screener-row:hover { background:rgba(255,255,255,0.04); }
+    [data-theme="light"] .screener-row:hover { background:rgba(0,0,0,0.03); }
+
+    /* ── PLOTLY TRANSPARENT ───────────────────────────── */
+    .js-plotly-plot .plotly .main-svg { background:transparent!important; }
+    .plot-container { background:transparent!important; }
+
+    /* ── TV CHART ─────────────────────────────────────── */
+    #tv-chart-container { width:100%;border-radius:12px;overflow:hidden; }
+    .tv-chart-toolbar { display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
+    .chart-type-btn {
+      padding:4px 10px;border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:600;
+      border:1px solid var(--border);color:var(--text-dim);background:transparent;cursor:pointer;
+      transition:all 0.15s;letter-spacing:0.04em;
+    }
+    .chart-type-btn:hover { border-color:#00e290;color:#00e290; }
+    .chart-type-btn.active { background:rgba(0,226,144,0.12);border-color:#00e290;color:#00e290; }
+    [data-theme="light"] .chart-type-btn.active { background:rgba(0,135,74,0.09);border-color:#00874a;color:#00874a; }
+
+    .tf-btn {
+      padding:3px 9px;border-radius:5px;font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:600;
+      border:1px solid transparent;color:var(--text-dim);background:transparent;cursor:pointer;
+      transition:all 0.15s;
+    }
+    .tf-btn:hover { color:var(--text);background:rgba(255,255,255,0.06); }
+    .tf-btn.active { color:#00e290;background:rgba(0,226,144,0.1);border-color:rgba(0,226,144,0.3); }
+    [data-theme="light"] .tf-btn.active { color:#00874a;background:rgba(0,135,74,0.09);border-color:rgba(0,135,74,0.25); }
+
+    /* ── LOGIN PAGE ───────────────────────────────────── */
+    #login-overlay {
+      position:fixed;inset:0;z-index:5000;display:flex;align-items:center;justify-content:center;
+      background: radial-gradient(ellipse at 30% 20%, rgba(0,226,144,0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 80%, rgba(46,77,242,0.08) 0%, transparent 60%),
+                  var(--bg);
+    }
+    #login-overlay.hidden { display:none; }
+    .login-card {
+      width:100%;max-width:420px;padding:40px;border-radius:24px;
+      background:var(--bg-card);backdrop-filter:blur(24px);
+      border:1px solid var(--border-accent);
+      box-shadow:0 0 60px rgba(0,226,144,0.08),0 32px 64px rgba(0,0,0,0.4);
+      animation: fadeUp 0.5s ease both;
+    }
+    [data-theme="light"] .login-card { box-shadow:0 4px 40px rgba(0,0,0,0.12); }
+
+    .g-signin-btn {
+      display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+      padding:12px 20px;border-radius:10px;border:1px solid var(--border);
+      background:var(--bg-raised);color:var(--text);font-family:'Inter',sans-serif;
+      font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;
+    }
+    .g-signin-btn:hover { border-color:#00e290;box-shadow:0 0 16px rgba(0,226,144,0.15); }
+
+    /* ── PAGE HERO BANNERS ────────────────────────────── */
+    .page-hero {
+      padding:28px 32px 0;
+      border-bottom:1px solid var(--border);
+      background:linear-gradient(135deg, rgba(0,226,144,0.04) 0%, transparent 60%);
+    }
+    [data-theme="light"] .page-hero { background:linear-gradient(135deg,rgba(0,135,74,0.04) 0%,transparent 60%); }
+
+    /* ── INDEX CARDS ──────────────────────────────────── */
+    .index-card {
+      flex:1;padding:14px 18px;border-radius:12px;
+      background:var(--bg-card);border:1px solid var(--border);
+      transition:all 0.2s;cursor:pointer;min-width:160px;
+    }
+    .index-card:hover { border-color:var(--border-accent);box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+
+    /* ── TOOLTIP ──────────────────────────────────────── */
+    [data-tip] { position:relative; }
+    [data-tip]::after {
+      content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;
+      transform:translateX(-50%) scale(0.85);background:var(--bg-raised);border:1px solid var(--border);
+      color:var(--text);font-size:10px;font-family:'JetBrains Mono',monospace;
+      white-space:nowrap;padding:4px 8px;border-radius:4px;pointer-events:none;opacity:0;
+      transition:opacity 0.15s,transform 0.15s;
+    }
+    [data-tip]:hover::after { opacity:1;transform:translateX(-50%) scale(1); }
+
+    /* ── THEME TOGGLE BUTTON ──────────────────────────── */
+    .theme-toggle-btn {
+      width:36px;height:36px;border-radius:50%;border:1px solid var(--border);
+      display:flex;align-items:center;justify-content:center;cursor:pointer;
+      background:var(--bg-raised);color:var(--text-dim);transition:all 0.2s;
+    }
+    .theme-toggle-btn:hover { border-color:#00e290;color:#00e290; }
+
+    /* ── SECTOR STOCK CARD ────────────────────────────── */
+    .sector-stock {
+      border-radius:10px;padding:12px;cursor:pointer;
+      background:var(--bg-raised);border:1px solid var(--border);
+      transition:all 0.2s;
+    }
+    .sector-stock:hover { border-color:#00e290;transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.2); }
+
+    /* ── QUICK TICKER PILLS ───────────────────────────── */
+    .quick-pill {
+      padding:4px 12px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:600;
+      border:1px solid var(--border);color:var(--text-dim);background:transparent;cursor:pointer;
+      transition:all 0.15s;white-space:nowrap;
+    }
+    .quick-pill:hover { border-color:#00e290;color:#00e290;background:rgba(0,226,144,0.06); }
+    .quick-pill.index-pill { border-color:rgba(0,226,144,0.3);color:#00e290; }
+    [data-theme="light"] .quick-pill.index-pill { border-color:rgba(0,135,74,0.3);color:#00874a; }
+
+    /* Prevent body scroll bleed */
+    .scrollable { overflow-y:auto!important;overflow-x:hidden!important; }
+
+    /* ── TECHNICAL ANALYSIS TABS ───────────────────────── */
+    .tech-tab-btn {
+      background: rgba(255,255,255,0.02);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      transition: all 0.2s ease-in-out;
+    }
+    .tech-tab-btn:hover {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+    }
+    .tech-tab-btn.active {
+      background: rgba(0,226,144,0.08);
+      color: #00e290;
+      border-color: rgba(0,226,144,0.3);
+      box-shadow: 0 0 10px rgba(0,226,144,0.05);
+    }
+    [data-theme="light"] .tech-tab-btn.active {
+      background: rgba(0,180,120,0.08);
+      color: #00b478;
+      border-color: rgba(0,180,120,0.3);
+    }
+  </style>
+</head>
+
+<body class="flex h-screen overflow-hidden antialiased">
+
+<!-- ══════════════════════════════════════════════════════
+     LOGIN OVERLAY
+══════════════════════════════════════════════════════ -->
+<div id="login-overlay">
+  <div class="login-card" style="max-width:440px">
+    <!-- Logo -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-glow border border-accent/30 mb-3 glow-emerald">
+        <span class="text-3xl font-black text-[#00e290]">TF</span>
+      </div>
+      <h1 class="text-2xl font-black tracking-tight" style="color:var(--text)">TradeForecast</h1>
+      <p class="text-sm mt-1" style="color:var(--text-dim)">NSE &amp; BSE Market Intelligence</p>
+    </div>
+
+    <!-- Tab Buttons -->
+    <div class="flex border-b mb-6" style="border-color:var(--border)">
+      <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-sm font-semibold border-b-2 text-center transition-all" style="border-color:#00e290;color:#00e290">Sign In</button>
+      <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 pb-3 text-sm font-semibold border-b-2 text-center transition-all" style="border-color:transparent;color:var(--text-muted)">Create Account</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="form-login" class="space-y-4">
+      <input id="login-user" type="text" placeholder="Username" class="cyber-input w-full px-4 py-3 rounded-xl text-sm">
+      <input id="login-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-3 rounded-xl text-sm" onkeydown="if(event.key==='Enter')doLogin()">
+      <button onclick="doLogin()" class="cyber-btn w-full py-3 px-4 rounded-xl font-semibold text-sm uppercase tracking-widest">
+        Sign In
+      </button>
+    </div>
+
+    <!-- Register Form -->
+    <div id="form-register" class="space-y-3 hidden">
+      <input id="reg-user" type="text" placeholder="Username" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
+      <input id="reg-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
+      <input id="reg-name" type="text" placeholder="Full Name" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
+      <input id="reg-email" type="email" placeholder="Email Address" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
+      
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[10px] font-mono uppercase block mb-1" style="color:var(--text-dim)">Trading Experience</label>
+          <select id="reg-experience" class="cyber-input w-full px-3 py-2 rounded-xl text-xs cursor-pointer">
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Professional">Professional</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] font-mono uppercase block mb-1" style="color:var(--text-dim)">Capital (Default)</label>
+          <input id="reg-capital" type="number" placeholder="Capital" class="cyber-input w-full px-3 py-2 rounded-xl text-xs">
+        </div>
+      </div>
+      
+      <input id="reg-country" type="text" placeholder="Country" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
+      
+      <button onclick="doRegister()" class="cyber-btn w-full py-3 px-4 rounded-xl font-semibold text-sm uppercase tracking-widest mt-2">
+        Register &amp; Sign In
+      </button>
+    </div>
+
+    <p id="login-err" class="text-xs text-center hidden mt-3" style="color:#ff8080"></p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     NOTIFICATION PANEL
+══════════════════════════════════════════════════════ -->
+<div id="notif-panel" class="glass-card rounded-xl overflow-hidden shadow-2xl">
+  <div class="flex items-center justify-between px-4 py-3 border-b" style="border-color:var(--border)">
+    <span class="text-xs font-mono font-semibold uppercase" style="color:var(--text-dim)">Alerts</span>
+    <button onclick="document.getElementById('notif-panel').classList.remove('open')" style="color:var(--text-dim)">
+      <span class="material-symbols-outlined text-sm">close</span>
+    </button>
+  </div>
+  <div id="notif-list" class="divide-y max-h-80 overflow-y-auto" style="border-color:var(--border)">
+    <div class="px-4 py-3 flex gap-3 items-start cursor-pointer" style="background:rgba(0,226,144,0.03)">
+      <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 glow-emerald" style="background:#00e290"></div>
+      <div>
+        <div class="text-sm font-medium" style="color:var(--text)">AI Engine online — predictions active</div>
+        <div class="text-xs mt-0.5 font-mono" style="color:var(--text-muted)">Now · NSE/BSE Ready</div>
+      </div>
+    </div>
+  </div>
+  <div class="px-4 py-2.5 border-t flex justify-between items-center bg-black/10" style="border-color:var(--border)">
+    <button onclick="markAllAsRead()" class="text-2xs font-mono font-semibold uppercase tracking-wider hover:underline" style="color:#00e290">Mark All Read</button>
+    <button onclick="notificationsList = []; renderNotifications();" class="text-2xs font-mono font-semibold uppercase tracking-wider hover:underline" style="color:#ff8080">Clear All</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     TERMINAL MODAL
+══════════════════════════════════════════════════════ -->
+<div id="terminal-modal">
+  <div class="w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl m-4" style="border:1px solid rgba(0,226,144,0.2);background:#0a0d13;">
+    <div class="flex items-center justify-between px-4 py-3 border-b" style="border-color:rgba(255,255,255,0.07);background:#111418;">
+      <div class="flex items-center gap-3">
+        <span class="w-3 h-3 rounded-full" style="background:#ff5f57"></span>
+        <span class="w-3 h-3 rounded-full" style="background:#febc2e"></span>
+        <span class="w-3 h-3 rounded-full" style="background:#28c840"></span>
+        <span class="text-xs font-mono ml-2" style="color:#5a6475">TradeForecast Terminal v3.1</span>
+      </div>
+      <button onclick="closeTerminal()" style="color:#5a6475" class="hover:text-white transition-colors">
+        <span class="material-symbols-outlined text-sm">close</span>
+      </button>
+    </div>
+    <div class="p-4 min-h-64 max-h-96 overflow-y-auto font-mono text-sm" id="terminal-output" style="color:#9aa5b4">
+      <div style="color:#00e290">TradeForecast Terminal — v3.1.0</div>
+      <div style="color:#5a6475">Connected to prediction engine. Type <span style="color:#00e290">help</span> for commands.</div>
+      <div style="color:#2a2f3a">────────────────────────────────────</div>
+    </div>
+    <div class="flex items-center gap-3 px-4 py-3 border-t" style="border-color:rgba(255,255,255,0.05);background:#0d1016">
+      <span class="font-mono text-xs font-semibold" style="color:#00e290">$</span>
+      <input id="terminal-input" type="text" placeholder="Enter command..."
+        class="flex-1 bg-transparent border-none outline-none font-mono text-sm placeholder:opacity-30"
+        style="color:var(--text)" onkeydown="handleTerminalInput(event)">
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MOBILE NAV OVERLAY
+     ══════════════════════════════════════════════════════ -->
+<div id="mobile-nav" class="mobile-nav-overlay fixed inset-0 z-50 flex-col">
+  <div class="absolute inset-0 bg-black/70" onclick="closeMobileNav()"></div>
+  <aside class="relative z-10 flex flex-col h-full w-72 backdrop-blur-xl border-r" style="background:var(--sidebar-bg);border-color:var(--border)">
+    <div class="px-6 py-5 border-b flex items-center justify-between" style="border-color:var(--border)">
+      <h1 class="text-lg font-black italic tracking-tighter text-glow" style="color:#00e290">TradeForecast</h1>
+      <button onclick="closeMobileNav()" style="color:var(--text-dim)"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-1 px-2" id="mobile-nav-links"></nav>
+  </aside>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN LAYOUT
+     ══════════════════════════════════════════════════════ -->
+<div class="flex h-screen w-full overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="hidden md:flex flex-col h-screen w-60 shrink-0 backdrop-blur-md border-r z-40" style="background:var(--sidebar-bg);border-color:var(--border)">
+    <div class="px-5 py-5 border-b" style="border-color:var(--border)">
+      <h1 class="text-lg font-black italic tracking-tighter text-glow" style="color:#00e290">TradeForecast</h1>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="w-2 h-2 rounded-full animate-pulse glow-emerald shrink-0" style="background:#00e290"></span>
+        <span class="text-xs font-mono" style="color:var(--text-dim)">ENGINE: <span style="color:#00e290">LIVE</span></span>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-1 px-2" id="desktop-nav-links"></nav>
+    <div class="p-4 border-t space-y-3" style="border-color:var(--border)">
+      <button onclick="openTerminal()" class="cyber-btn w-full py-2.5 px-4 rounded-xl text-xs font-mono font-semibold uppercase tracking-widest flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-sm">terminal</span>Terminal
+      </button>
+      <!-- User pill -->
+      <div id="user-pill" class="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer" style="background:var(--bg-raised);border:1px solid var(--border)">
+        <img id="user-avatar" src="" class="w-7 h-7 rounded-full hidden" alt="avatar">
+        <div id="user-avatar-fallback" class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background:rgba(0,226,144,0.15);color:#00e290">AD</div>
+        <div class="flex-1 min-w-0">
+          <div id="user-name" class="text-xs font-semibold truncate" style="color:var(--text)">Admin</div>
+          <div class="text-xs font-mono truncate" style="color:var(--text-muted)">NSE/BSE</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- RIGHT COLUMN -->
+  <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+
+    <!-- TOP HEADER -->
+    <header class="flex items-center justify-between h-14 px-5 border-b z-30 shrink-0 backdrop-blur-xl" style="background:var(--header-bg);border-color:var(--border);box-shadow:0 0 18px rgba(0,226,144,0.06)">
+      <div class="flex items-center gap-3">
+        <button class="md:hidden p-1" style="color:var(--text-dim)" onclick="openMobileNav()">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h2 id="page-title" class="font-bold text-base tracking-tight hidden md:block" style="color:var(--text)">NSE &amp; BSE Overview</h2>
+      </div>
+
+      <!-- Search -->
+      <div class="flex-1 max-w-sm mx-4 hidden sm:block">
+        <div class="relative">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-dim)">search</span>
+          <input id="global-search" type="text" placeholder="NSE/BSE symbol (e.g. RELIANCE.NS)..."
+            class="cyber-input w-full pl-9 pr-3 py-2 rounded-xl text-sm"
+            onkeydown="if(event.key==='Enter'){triggerPrediction(this.value.trim().toUpperCase())}"
+            list="stock-suggestions">
+          <datalist id="stock-suggestions">
+            <option value="RELIANCE.NS"><option value="TCS.NS"><option value="HDFCBANK.NS"><option value="INFY.NS">
+            <option value="ICICIBANK.NS"><option value="SBIN.NS"><option value="WIPRO.NS"><option value="BAJFINANCE.NS">
+            <option value="HCLTECH.NS"><option value="KOTAKBANK.NS"><option value="AXISBANK.NS"><option value="ADANIENT.NS">
+            <option value="MARUTI.NS"><option value="TATAMOTORS.NS"><option value="SUNPHARMA.NS"><option value="TITAN.NS">
+            <option value="BHARTIARTL.NS"><option value="NTPC.NS"><option value="ONGC.NS"><option value="HINDUNILVR.NS">
+            <option value="^NSEI"><option value="^BSESN"><option value="^NSEBANK"><option value="BTC-USD"><option value="ETH-USD">
+          </datalist>
+        </div>
+      </div>
+
+      <!-- Right actions -->
+      <div class="flex items-center gap-2">
+        <!-- Theme toggle -->
+        <button class="theme-toggle-btn" data-tip="Toggle Theme" onclick="toggleTheme()" id="theme-toggle-btn">
+          <span class="material-symbols-outlined text-sm" id="theme-icon">light_mode</span>
+        </button>
+        <div class="relative" id="notif-btn-wrap">
+          <button id="notif-btn" onclick="toggleNotifPanel()" data-tip="Alerts" class="theme-toggle-btn">
+            <span class="material-symbols-outlined text-sm">notifications</span>
+          </button>
+          <span class="notif-badge"></span>
+        </div>
+        <button onclick="navigateTo('settings')" data-tip="Settings" class="theme-toggle-btn">
+          <span class="material-symbols-outlined text-sm">settings</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- LIVE TICKER -->
+    <div id="ticker-bar" class="shrink-0 border-b overflow-hidden py-1.5 z-20" style="background:var(--bg);border-color:var(--border)">
+      <div class="ticker-track font-mono text-xs" id="ticker-content">
+        <span class="flex items-center gap-1 px-6" style="color:var(--text-dim)">🇮🇳 NSE</span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">RELIANCE.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">TCS.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">HDFCBANK.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">INFY.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">ICICIBANK.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">SBIN.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">BAJFINANCE.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">WIPRO.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">AXISBANK.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">TATAMOTORS.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">MARUTI.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <!-- duplicate -->
+        <span class="flex items-center gap-1 px-6" style="color:var(--text-dim)">🇮🇳 NSE</span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">RELIANCE.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">TCS.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">HDFCBANK.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">INFY.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">ICICIBANK.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">SBIN.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">BAJFINANCE.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">WIPRO.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">AXISBANK.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">TATAMOTORS.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+        <span class="flex items-center gap-2 px-4"><span style="color:var(--text)">MARUTI.NS</span><span style="color:#00e290">—</span><span class="text-xs" style="color:var(--text-dim)">Loading...</span></span>
+      </div>
+    </div>
+
+    <!-- PAGE CONTENT -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+      <!-- ══ PAGE 1: DASHBOARD ══ -->
+      <section id="page-dashboard" class="page active scrollable h-full">
+
+        <!-- Hero -->
+        <div class="page-hero shrink-0">
+          <div class="flex flex-wrap items-end justify-between gap-4 pb-5">
+            <div class="fade-up">
+              <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">NSE &amp; BSE Overview</h1>
+              <p class="text-sm mt-1" style="color:var(--text-dim)">Real-time AI analysis for Indian markets — Nifty 50, Sensex, Bank Nifty &amp; more.</p>
+            </div>
+            <!-- Index quick cards -->
+            <div class="flex gap-3 flex-wrap fade-up fade-up-d1">
+              <div class="index-card" onclick="triggerPrediction('^NSEI')">
+                <div class="text-xs font-mono font-semibold mb-1" style="color:#00e290">NIFTY 50</div>
+                <div id="idx-nsei-price" class="text-lg font-bold" style="color:var(--text)">—</div>
+                <div id="idx-nsei-chg" class="text-xs font-mono" style="color:var(--text-dim)">Loading...</div>
+              </div>
+              <div class="index-card" onclick="triggerPrediction('^BSESN')">
+                <div class="text-xs font-mono font-semibold mb-1" style="color:#60a5fa">SENSEX</div>
+                <div id="idx-bsesn-price" class="text-lg font-bold" style="color:var(--text)">—</div>
+                <div id="idx-bsesn-chg" class="text-xs font-mono" style="color:var(--text-dim)">Loading...</div>
+              </div>
+              <div class="index-card" onclick="triggerPrediction('^NSEBANK')">
+                <div class="text-xs font-mono font-semibold mb-1" style="color:#f59e0b">BANK NIFTY</div>
+                <div id="idx-nsebank-price" class="text-lg font-bold" style="color:var(--text)">—</div>
+                <div id="idx-nsebank-chg" class="text-xs font-mono" style="color:var(--text-dim)">Loading...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex-1 p-5 space-y-5">
+          <!-- Top row: Predict Panel + Agent Logs -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+
+            <!-- AI Prediction Panel -->
+            <div id="predict-panel" class="md:col-span-8 glass-card-accent rounded-2xl p-5 flex flex-col fade-up hover-lift">
+              <div class="flex justify-between items-center mb-4 border-b pb-3" style="border-color:var(--border)">
+                <h2 class="font-bold text-base flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined text-lg" style="color:#00e290">psychology_alt</span>
+                  AI Prediction Engine
+                </h2>
+                <div class="flex gap-2 items-center">
+                  <select id="timeframe-select" class="cyber-input px-2 py-1 rounded-lg text-xs font-mono cursor-pointer" onchange="setTVInterval(this.value)">
+                    <option value="1m">1 min</option><option value="3m">3 min</option><option value="5m">5 min</option>
+                    <option value="15m">15 min</option><option value="30m">30 min</option><option value="45m">45 min</option>
+                    <option value="1h">1 Hour</option><option value="2h">2 Hour</option><option value="3h">3 Hour</option>
+                    <option value="4h">4 Hour</option><option value="1d" selected>1 Day</option>
+                    <option value="1w">1 Week</option><option value="1mo">1 Month</option>
+                  </select>
+                  <select id="model-select" class="cyber-input px-2 py-1 rounded-lg text-xs font-mono cursor-pointer">
+                    <option value="linear">Linear Trend Model</option>
+                    <option value="ensemble">Ensemble Pattern Model</option>
+                    <option value="deep">Deep Consensus Model</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Quick NSE pills -->
+              <div class="flex gap-2 flex-wrap mb-4">
+                <span class="text-xs font-mono font-semibold" style="color:var(--text-dim)">NSE Quick:</span>
+                <button class="quick-pill" onclick="triggerPrediction('RELIANCE.NS')">RELIANCE</button>
+                <button class="quick-pill" onclick="triggerPrediction('TCS.NS')">TCS</button>
+                <button class="quick-pill" onclick="triggerPrediction('HDFCBANK.NS')">HDFC BANK</button>
+                <button class="quick-pill" onclick="triggerPrediction('INFY.NS')">INFOSYS</button>
+                <button class="quick-pill" onclick="triggerPrediction('ICICIBANK.NS')">ICICI BANK</button>
+                <button class="quick-pill" onclick="triggerPrediction('SBIN.NS')">SBI</button>
+                <button class="quick-pill" onclick="triggerPrediction('BAJFINANCE.NS')">BAJAJ FIN</button>
+                <button class="quick-pill" onclick="triggerPrediction('WIPRO.NS')">WIPRO</button>
+                <button class="quick-pill" onclick="triggerPrediction('AXISBANK.NS')">AXIS BANK</button>
+                <button class="quick-pill index-pill" onclick="triggerPrediction('^NSEI')">NIFTY 50</button>
+                <button class="quick-pill index-pill" onclick="triggerPrediction('^BSESN')">SENSEX</button>
+              </div>
+
+              <!-- Result area -->
+              <div id="predict-result" class="flex-1 min-h-[260px] flex flex-col items-center justify-center">
+                <div class="text-center" style="color:var(--text-dim)">
+                  <span class="material-symbols-outlined text-5xl" style="color:rgba(0,226,144,0.25)">query_stats</span>
+                  <p class="text-xs font-mono mt-3">Enter a ticker or click a quick button to run AI prediction</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Agent Logs -->
+            <div class="md:col-span-4 glass-card rounded-2xl p-5 flex flex-col fade-up fade-up-d1 hover-lift">
+              <div class="flex justify-between items-center mb-4 border-b pb-3" style="border-color:var(--border)">
+                <h2 class="font-bold text-base" style="color:var(--text)">Agent Logs</h2>
+                <span class="material-symbols-outlined" style="color:#00e290">local_fire_department</span>
+              </div>
+              <div id="agent-log-panel" class="flex-1 flex flex-col gap-2 overflow-y-auto max-h-72 font-mono text-xs" style="color:var(--text-dim)">
+                <div class="italic">Waiting for prediction...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div id="stat-confidence" class="glass-card rounded-2xl p-4 fade-up fade-up-d2 hover-lift">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-xs font-mono font-semibold uppercase tracking-wider" style="color:var(--text-dim)">AI Confidence</span>
+                <span class="material-symbols-outlined text-sm" style="color:#00e290">memory</span>
+              </div>
+              <div id="stat-confidence-val" class="text-3xl font-black mb-2" style="color:var(--text)">—%</div>
+              <div class="w-full h-1.5 rounded-full overflow-hidden" style="background:var(--bg-raised)">
+                <div id="stat-confidence-bar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:#00e290"></div>
+              </div>
+            </div>
+            <div class="glass-card rounded-2xl p-4 fade-up fade-up-d2 hover-lift">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-xs font-mono font-semibold uppercase tracking-wider" style="color:var(--text-dim)">Direction</span>
+                <span class="material-symbols-outlined text-sm" style="color:#ff8080">show_chart</span>
+              </div>
+              <div id="stat-direction" class="text-2xl font-black mb-1" style="color:var(--text)">—</div>
+              <span id="stat-ticker-label" class="text-xs font-mono" style="color:var(--text-dim)">No prediction yet</span>
+            </div>
+            <div class="glass-card rounded-2xl p-4 fade-up fade-up-d2 hover-lift">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-xs font-mono font-semibold uppercase tracking-wider" style="color:var(--text-dim)">Sentiment</span>
+                <span class="material-symbols-outlined text-sm" style="color:#60a5fa">forum</span>
+              </div>
+              <div id="stat-sentiment" class="text-2xl font-black mb-1" style="color:#60a5fa">—</div>
+              <span id="stat-sentiment-score" class="text-xs font-mono" style="color:var(--text-dim)">Score: —</span>
+            </div>
+            <div class="glass-card rounded-2xl p-4 fade-up fade-up-d2 hover-lift">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-xs font-mono font-semibold uppercase tracking-wider" style="color:var(--text-dim)">Current Price</span>
+                <span class="material-symbols-outlined text-sm" style="color:#00e290">currency_rupee</span>
+              </div>
+              <div id="stat-price" class="text-2xl font-black mb-1" style="color:var(--text)">—</div>
+              <span id="stat-forecast" class="text-xs font-mono" style="color:#00e290">Forecast: —</span>
+            </div>
+          </div>
+
+          <footer class="py-4 border-t flex flex-wrap justify-between items-center gap-2 text-xs font-mono" style="border-color:var(--border);color:var(--text-muted)">
+            <span>© 2025 TradeForecast — INDIA MARKET EDITION</span>
+            <span>NSE: <span style="color:#00e290">LIVE</span> · BSE: <span style="color:#00e290">LIVE</span> · ENGINE: <span style="color:#00e290">ONLINE</span></span>
+          </footer>
+        </div>
+      </section>
+
+      <!-- ══ PAGE 2: PREDICTIONS (TradingView) ══ -->
+      <section id="page-predictions" class="page h-full flex-col">
+
+        <!-- Predictions top bar -->
+        <div class="hidden md:flex items-center flex-wrap gap-3 px-5 py-3 border-b shrink-0" style="border-color:var(--border);background:var(--header-bg)">
+          <!-- Ticker input -->
+          <div class="flex gap-2 items-center">
+            <input id="pred-search" type="text" placeholder="NSE/BSE/Index (e.g. RELIANCE.NS)" class="cyber-input px-4 py-2 rounded-xl font-mono text-sm w-60"
+              onkeydown="if(event.key==='Enter'){triggerPrediction(this.value.trim().toUpperCase())}"
+              list="stock-suggestions">
+            <button onclick="triggerPrediction(document.getElementById('pred-search').value.trim().toUpperCase())" class="cyber-btn px-4 py-2 rounded-xl text-xs font-mono font-semibold flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">psychology_alt</span>PREDICT
+            </button>
+          </div>
+
+          <!-- TradingView Timeframe bar -->
+          <div class="flex gap-1 items-center tv-chart-toolbar flex-wrap">
+            <span class="text-xs font-mono mr-1" style="color:var(--text-muted)">TF:</span>
+            <button class="tf-btn" onclick="setTVInterval('1m')">1m</button>
+            <button class="tf-btn" onclick="setTVInterval('3m')">3m</button>
+            <button class="tf-btn" onclick="setTVInterval('5m')">5m</button>
+            <button class="tf-btn" onclick="setTVInterval('15m')">15m</button>
+            <button class="tf-btn" onclick="setTVInterval('30m')">30m</button>
+            <button class="tf-btn" onclick="setTVInterval('45m')">45m</button>
+            <button class="tf-btn" onclick="setTVInterval('1h')">1H</button>
+            <button class="tf-btn" onclick="setTVInterval('2h')">2H</button>
+            <button class="tf-btn" onclick="setTVInterval('3h')">3H</button>
+            <button class="tf-btn" onclick="setTVInterval('4h')">4H</button>
+            <button class="tf-btn active" onclick="setTVInterval('1d')">1D</button>
+            <button class="tf-btn" onclick="setTVInterval('1w')">1W</button>
+            <button class="tf-btn" onclick="setTVInterval('1mo')">1M</button>
+          </div>
+
+          <!-- Chart type buttons -->
+          <div class="flex gap-1 items-center flex-wrap ml-auto">
+            <span class="text-xs font-mono mr-1" style="color:var(--text-muted)">Style:</span>
+            <button class="chart-type-btn active" onclick="setTVStyle('1','Candles',this)">Candles</button>
+            <button class="chart-type-btn" onclick="setTVStyle('8','Heikin Ashi',this)">Heikin Ashi</button>
+            <button class="chart-type-btn" onclick="setTVStyle('0','Bars',this)">Bars</button>
+            <button class="chart-type-btn" onclick="setTVStyle('9','Hollow',this)">Hollow</button>
+            <button class="chart-type-btn" onclick="setTVStyle('2','Line',this)">Line</button>
+            <button class="chart-type-btn" onclick="setTVStyle('3','Area',this)">Area</button>
+            <button class="chart-type-btn" onclick="setTVStyle('10','Baseline',this)">Baseline</button>
+            <button class="chart-type-btn" onclick="setTVStyle('5','Renko',this)">Renko</button>
+            <a id="tv-external-link" href="#" target="_blank" class="chart-type-btn flex items-center gap-1 ml-2 font-bold" style="border-color:rgba(0,226,144,0.35);color:#00e290">
+              <span class="material-symbols-outlined text-xs">open_in_new</span>
+              Full Chart ↗
+            </a>
+          </div>
+
+          <div id="pred-loading" class="hidden items-center gap-2 text-xs font-mono" style="color:#00e290">
+            <div class="spinner"></div>Fetching AI data...
+          </div>
+        </div>
+
+        <!-- Main content: TradingView + AI panel -->
+        <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
+
+          <!-- TradingView widget -->
+          <div class="glass-card rounded-2xl overflow-hidden hover-lift flex flex-col" style="min-height:520px">
+            <!-- Warning banner for NSE/BSE restricted symbols -->
+            <div id="tv-warning-banner" class="hidden px-4 py-2.5 text-xs font-mono items-center justify-between border-b" style="background:rgba(255,128,128,0.06);border-color:rgba(255,128,128,0.15);color:#ff8080">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm animate-pulse">warning</span>
+                <span>Note: Indian stocks (NSE/BSE) are restricted from embedding on third-party sites by exchanges.</span>
+              </div>
+              <a id="tv-banner-link" href="#" target="_blank" class="px-2.5 py-1 rounded border border-current hover:bg-red-500 hover:text-white transition-all text-2xs uppercase font-bold tracking-wider">
+                Open Full Chart on TradingView ↗
+              </a>
+            </div>
+            <div id="tv-chart-container" class="flex-1" style="height:520px">
+              <div class="flex items-center justify-center h-full text-sm font-mono" style="color:var(--text-dim)">
+                <div class="text-center">
+                  <div class="spinner mx-auto mb-3"></div>
+                  <div>Initialising TradingView chart...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Analysis Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Left Side: Comprehensive Technical Analysis Tabs (Col Span 8) -->
+            <div class="lg:col-span-8 flex flex-col gap-4">
+              <div class="glass-card rounded-2xl p-5 hover-lift flex-1 flex flex-col">
+                <!-- Tab Headers -->
+                <div class="flex items-center gap-2 border-b pb-3 mb-4 flex-wrap" style="border-color:var(--border)">
+                  <h3 class="font-bold text-base flex items-center gap-2 mr-4" style="color:var(--text)">
+                    <span class="material-symbols-outlined" style="color:#00e290">analytics</span>
+                    Technical Analysis
+                  </h3>
+                  <div class="flex gap-1 flex-wrap">
+                    <button id="btn-tab-indicators" class="tech-tab-btn active px-3 py-1.5 rounded-xl text-xs font-mono font-semibold" onclick="switchTechTab('indicators')">Indicators (19)</button>
+                    <button id="btn-tab-fibonacci" class="tech-tab-btn px-3 py-1.5 rounded-xl text-xs font-mono font-semibold" onclick="switchTechTab('fibonacci')">Fibonacci Levels</button>
+                    <button id="btn-tab-pivots" class="tech-tab-btn px-3 py-1.5 rounded-xl text-xs font-mono font-semibold" onclick="switchTechTab('pivots')">Pivot Points</button>
+                  </div>
+                </div>
+
+                <!-- Tab 1: Indicators -->
+                <div id="tech-tab-indicators" class="tech-tab-content flex-1 overflow-x-auto">
+                  <table class="w-full text-sm font-mono">
+                    <thead>
+                      <tr class="border-b text-xs uppercase tracking-wider" style="border-color:var(--border);color:var(--text-dim)">
+                        <th class="text-left py-2" style="width:20%">Indicator</th>
+                        <th class="text-right py-2" style="width:15%">Value</th>
+                        <th class="text-right py-2" style="width:15%">Signal</th>
+                        <th class="text-right py-2" style="width:15%">Strength</th>
+                        <th class="text-left py-2 pl-4" style="width:35%">Behavior &amp; Reason</th>
+                      </tr>
+                    </thead>
+                    <tbody id="indicators-tbody">
+                      <tr><td colspan="5" class="py-6 text-center italic text-xs" style="color:var(--text-muted)">Run a prediction to see indicators</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Tab 2: Fibonacci -->
+                <div id="tech-tab-fibonacci" class="tech-tab-content hidden flex-1 overflow-x-auto">
+                  <table class="w-full text-sm font-mono">
+                    <thead>
+                      <tr class="border-b text-xs uppercase tracking-wider" style="border-color:var(--border);color:var(--text-dim)">
+                        <th class="text-left py-2" style="width:25%">Fib Ratio</th>
+                        <th class="text-right py-2" style="width:25%">Price Level</th>
+                        <th class="text-left py-2 pl-4" style="width:50%">Reversal Zone Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="fibonacci-tbody">
+                      <tr><td colspan="3" class="py-6 text-center italic text-xs" style="color:var(--text-muted)">Run a prediction to see Fibonacci levels</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Tab 3: Pivots -->
+                <div id="tech-tab-pivots" class="tech-tab-content hidden flex-1 overflow-x-auto">
+                  <table class="w-full text-sm font-mono">
+                    <thead>
+                      <tr class="border-b text-xs uppercase tracking-wider" style="border-color:var(--border);color:var(--text-dim)">
+                        <th class="text-left py-2" style="width:30%">Pivot Level</th>
+                        <th class="text-right py-2" style="width:30%">Price Level</th>
+                        <th class="text-left py-2 pl-4" style="width:40%">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pivots-tbody">
+                      <tr><td colspan="3" class="py-6 text-center italic text-xs" style="color:var(--text-muted)">Run a prediction to see Pivot points</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: AI Consensus, Top Performer & News (Col Span 4) -->
+            <div class="lg:col-span-4 flex flex-col gap-5">
+              <!-- AI Consensus Recommendation Card -->
+              <div id="consensus-card" class="glass-card rounded-2xl p-5 hover-lift relative overflow-hidden flex flex-col" style="border-left: 4px solid var(--border); min-height:190px">
+                <div class="absolute top-0 right-0 w-24 h-24 opacity-5 pointer-events-none flex items-center justify-center">
+                  <span class="material-symbols-outlined text-9xl">gavel</span>
+                </div>
+                <h3 class="font-bold text-base mb-3 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#00e290">gavel</span>
+                  AI Consensus Decision
+                </h3>
+                <div class="flex items-baseline justify-between mb-2">
+                  <span id="consensus-action" class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">—</span>
+                  <span id="consensus-confidence" class="text-xs font-mono font-bold uppercase px-2 py-0.5 rounded" style="background:rgba(255,255,255,0.06);color:var(--text-dim)">Conf: —</span>
+                </div>
+                <div class="flex items-center gap-2 mb-3">
+                  <span class="material-symbols-outlined text-xs" style="color:var(--text-muted)">schedule</span>
+                  <span class="text-xs font-mono" style="color:var(--text-muted)">Horizon:</span>
+                  <span id="consensus-duration" class="text-xs font-mono font-bold" style="color:var(--text)">—</span>
+                </div>
+                <p id="consensus-rationale" class="text-xs leading-relaxed font-mono flex-1" style="color:var(--text-dim)">
+                  Awaiting analysis run...
+                </p>
+              </div>
+
+              <!-- Top Performing Indicator Card -->
+              <div class="glass-card rounded-2xl p-4 hover-lift flex items-center gap-4">
+                <div class="rounded-xl p-2.5 flex items-center justify-center" style="background:rgba(0,226,144,0.08);color:#00e290">
+                  <span class="material-symbols-outlined text-xl">trophy</span>
+                </div>
+                <div class="flex-1">
+                  <div class="text-2xs font-mono uppercase tracking-wider" style="color:var(--text-dim)">Best Historical Performer</div>
+                  <div id="best-indicator-name" class="text-sm font-bold mt-0.5" style="color:var(--text)">—</div>
+                  <div id="best-indicator-accuracy" class="text-xs font-mono mt-0.5" style="color:#00e290">Accuracy: —</div>
+                </div>
+              </div>
+
+              <!-- Intelligence Feed & Sentiment -->
+              <div class="glass-card rounded-2xl p-5 hover-lift">
+                <h3 class="font-bold text-base mb-3 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#00e290">newspaper</span>
+                  Market Intelligence Feed
+                </h3>
+                <ul id="news-feed" class="space-y-2 mb-4">
+                  <li class="text-xs italic" style="color:var(--text-muted)">Run a prediction to load news</li>
+                </ul>
+                <div id="sentiment-display" class="pt-3 border-t hidden" style="border-color:var(--border)">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs font-mono uppercase tracking-wider" style="color:var(--text-dim)">Sentiment Score</span>
+                    <span id="sentiment-score-val" class="text-sm font-mono" style="color:#00e290">—</span>
+                  </div>
+                  <div class="w-full h-1.5 rounded-full overflow-hidden mt-2" style="background:var(--bg-raised)">
+                    <div id="sentiment-bar" class="h-full rounded-full transition-all duration-700" style="width:50%;background:#00e290"></div>
+                  </div>
+                  <div id="sentiment-label" class="text-xs font-mono mt-1" style="color:var(--text-dim)">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Prediction Chart (Plotly overlay) -->
+          <div class="glass-card rounded-2xl p-5 hover-lift">
+            <div class="flex items-baseline gap-4 flex-wrap mb-3 border-b pb-3" style="border-color:var(--border)">
+              <h2 id="chart-title" class="font-bold text-lg" style="color:var(--text)">—</h2>
+              <span id="chart-price" class="font-mono font-bold text-glow" style="color:#00e290">—</span>
+              <span id="chart-direction-chip" class="chip-hold px-2 py-0.5 rounded text-xs">—</span>
+              <div class="ml-auto flex items-center gap-2">
+                <span class="text-xs font-mono uppercase" style="color:var(--text-dim)">AI Forecast:</span>
+                <span id="chart-forecast" class="text-sm font-mono border px-2 py-0.5 rounded" style="color:#00e290;border-color:rgba(0,226,144,0.3)">—</span>
+              </div>
+            </div>
+            <div id="main-chart" style="min-height:300px;"></div>
+          </div>
+
+          <!-- ReAct Agent Logs -->
+          <div class="glass-card rounded-2xl p-5 hover-lift">
+            <h3 class="font-bold text-base mb-3 flex items-center gap-2" style="color:var(--text)">
+              <span class="material-symbols-outlined" style="color:#00e290">memory</span>
+              ReAct Agent Execution Logs
+            </h3>
+            <div id="react-terminal" class="rounded-xl p-4 font-mono text-xs min-h-24 max-h-48 overflow-y-auto space-y-1" style="background:rgba(0,0,0,0.35);color:var(--text-dim)">
+              <div class="italic">Awaiting agent execution...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ PAGE 3: PORTFOLIO ══ -->
+      <section id="page-portfolio" class="page h-full scrollable">
+        <div class="page-hero shrink-0">
+          <div class="pb-5 fade-up">
+            <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">Portfolio &amp; Backtester</h1>
+            <p class="text-sm mt-1" style="color:var(--text-dim)">Simulate AI strategies on NSE/BSE stocks with ₹ capital.</p>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <!-- Backtester Form -->
+            <div class="md:col-span-4 glass-card-accent rounded-2xl p-6 hover-lift fade-up">
+              <h3 class="font-bold text-base mb-5 flex items-center gap-2" style="color:var(--text)">
+                <span class="material-symbols-outlined" style="color:#00e290">history</span>
+                Strategy Backtester
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="text-xs font-mono font-semibold uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Ticker (NSE/BSE)</label>
+                  <input id="bt-ticker" type="text" placeholder="e.g. RELIANCE.NS" value="RELIANCE.NS"
+                    class="cyber-input w-full py-3 px-4 rounded-xl font-mono text-sm"
+                    list="stock-suggestions">
+                </div>
+                <div>
+                  <label class="text-xs font-mono font-semibold uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Timeframe</label>
+                  <select id="bt-timeframe" class="cyber-input w-full px-3 py-3 rounded-xl font-mono text-sm cursor-pointer">
+                    <option value="1M">1 Month</option><option value="1W">1 Week</option><option value="1D">1 Day</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs font-mono font-semibold uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Initial Capital (₹)</label>
+                  <input id="bt-capital" type="number" value="100000" min="1000"
+                    class="cyber-input w-full py-3 px-4 rounded-xl font-mono text-sm">
+                </div>
+                <button id="bt-run-btn" onclick="runBacktest()" class="cyber-btn w-full py-3 px-4 rounded-xl text-sm font-mono font-semibold uppercase tracking-widest flex items-center justify-center gap-2">
+                  <span class="material-symbols-outlined text-sm">play_arrow</span>Run Backtest
+                </button>
+              </div>
+            </div>
+
+            <!-- Backtest Results -->
+            <div class="md:col-span-8 glass-card rounded-2xl p-6 hover-lift fade-up fade-up-d1">
+              <h3 class="font-bold text-base mb-5 flex items-center gap-2" style="color:var(--text)">
+                <span class="material-symbols-outlined" style="color:#00e290">monitoring</span>
+                Backtest Results
+              </h3>
+              <div id="bt-stats" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+                <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+                  <div class="text-xs font-mono uppercase tracking-wider mb-1" style="color:var(--text-dim)">Strategy Return</div>
+                  <div id="bt-strat-return" class="text-xl font-black" style="color:var(--text)">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+                  <div class="text-xs font-mono uppercase tracking-wider mb-1" style="color:var(--text-dim)">Benchmark Return</div>
+                  <div id="bt-bench-return" class="text-xl font-black" style="color:var(--text)">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+                  <div class="text-xs font-mono uppercase tracking-wider mb-1" style="color:var(--text-dim)">Sharpe Ratio</div>
+                  <div id="bt-sharpe" class="text-xl font-black" style="color:var(--text)">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+                  <div class="text-xs font-mono uppercase tracking-wider mb-1" style="color:var(--text-dim)">Win Rate</div>
+                  <div id="bt-winrate" class="text-xl font-black" style="color:var(--text)">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+                  <div class="text-xs font-mono uppercase tracking-wider mb-1" style="color:var(--text-dim)">Max Drawdown</div>
+                  <div id="bt-drawdown" class="text-xl font-black" style="color:var(--text)">—</div>
+                </div>
+                <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+                  <div class="text-xs font-mono uppercase tracking-wider mb-1" style="color:var(--text-dim)">Total Trades</div>
+                  <div id="bt-trades" class="text-xl font-black" style="color:var(--text)">—</div>
+                </div>
+              </div>
+              <div id="bt-chart" style="min-height:240px;"></div>
+              <div id="bt-loading" class="hidden text-center py-10" style="color:var(--text-dim)">
+                <div class="spinner mx-auto mb-3"></div>
+                <div class="text-xs font-mono">Running backtest simulation...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ PAGE 4: SCREENER ══ -->
+      <section id="page-screener" class="page h-full scrollable">
+        <div class="page-hero shrink-0">
+          <div class="flex flex-wrap items-end justify-between gap-4 pb-5">
+            <div class="fade-up">
+              <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">Market Scanner</h1>
+              <p class="text-sm mt-1" style="color:var(--text-dim)">AI-powered multi-factor screener across NSE, BSE, F&amp;O &amp; mid-caps.</p>
+            </div>
+            <div class="flex gap-3 flex-wrap fade-up fade-up-d1">
+              <button onclick="loadScanResults()" class="glass-card px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold border transition-all" style="color:#00e290;border-color:rgba(0,226,144,0.3)">
+                <span class="material-symbols-outlined text-sm">refresh</span>Load Scan Data
+              </button>
+              <button onclick="triggerMarketScan()" class="cyber-btn px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold">
+                <span class="material-symbols-outlined text-sm">radar</span>Run New Scan
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="p-5">
+          <div id="scan-loading" class="hidden text-center py-16" style="color:var(--text-dim)">
+            <div class="spinner mx-auto mb-3"></div>
+            <div class="text-xs font-mono">Scanning markets... this may take a few minutes</div>
+          </div>
+          <div id="screener-content">
+            <div class="glass-card rounded-2xl p-16 text-center" style="color:var(--text-dim)">
+              <span class="material-symbols-outlined text-5xl" style="color:rgba(0,226,144,0.2)">radar</span>
+              <p class="text-sm font-mono mt-4">Click "Load Scan Data" to view existing results or "Run New Scan" to scan live.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ PAGE 5: NSE SECTORS ══ -->
+      <section id="page-crypto" class="page h-full scrollable">
+        <div class="page-hero shrink-0">
+          <div class="pb-5 fade-up">
+            <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">NSE Sector Watchlist</h1>
+            <p class="text-sm mt-1" style="color:var(--text-dim)">Click any stock to run a live AI prediction and open TradingView chart.</p>
+          </div>
+        </div>
+        <div class="p-5 space-y-5">
+
+          <!-- IT & Tech -->
+          <div class="glass-card rounded-2xl p-5 fade-up">
+            <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+              <span class="material-symbols-outlined" style="color:#00e290">computer</span>IT &amp; Technology
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="sector-stock" onclick="triggerCryptoPrediction('TCS.NS')"><div class="font-bold text-sm" style="color:var(--text)">TCS</div><div class="text-xs mb-2" style="color:var(--text-dim)">Tata Consultancy</div><div id="tcs-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="tcs-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('INFY.NS')"><div class="font-bold text-sm" style="color:var(--text)">INFY</div><div class="text-xs mb-2" style="color:var(--text-dim)">Infosys</div><div id="infy-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="infy-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('WIPRO.NS')"><div class="font-bold text-sm" style="color:var(--text)">WIPRO</div><div class="text-xs mb-2" style="color:var(--text-dim)">Wipro Ltd</div><div id="wipro-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="wipro-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('HCLTECH.NS')"><div class="font-bold text-sm" style="color:var(--text)">HCLTECH</div><div class="text-xs mb-2" style="color:var(--text-dim)">HCL Technologies</div><div id="hcltech-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="hcltech-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+            </div>
+          </div>
+
+          <!-- Banking & Finance -->
+          <div class="glass-card rounded-2xl p-5 fade-up fade-up-d1">
+            <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+              <span class="material-symbols-outlined" style="color:#60a5fa">account_balance</span>Banking &amp; Finance
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="sector-stock" onclick="triggerCryptoPrediction('HDFCBANK.NS')"><div class="font-bold text-sm" style="color:var(--text)">HDFCBANK</div><div class="text-xs mb-2" style="color:var(--text-dim)">HDFC Bank</div><div id="hdfcbank-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="hdfcbank-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('ICICIBANK.NS')"><div class="font-bold text-sm" style="color:var(--text)">ICICIBANK</div><div class="text-xs mb-2" style="color:var(--text-dim)">ICICI Bank</div><div id="icicibank-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="icicibank-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('SBIN.NS')"><div class="font-bold text-sm" style="color:var(--text)">SBIN</div><div class="text-xs mb-2" style="color:var(--text-dim)">State Bank of India</div><div id="sbin-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="sbin-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('BAJFINANCE.NS')"><div class="font-bold text-sm" style="color:var(--text)">BAJFINANCE</div><div class="text-xs mb-2" style="color:var(--text-dim)">Bajaj Finance</div><div id="bajfinance-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="bajfinance-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+            </div>
+          </div>
+
+          <!-- Energy & Conglomerates -->
+          <div class="glass-card rounded-2xl p-5 fade-up fade-up-d2">
+            <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+              <span class="material-symbols-outlined" style="color:#f59e0b">bolt</span>Energy &amp; Conglomerates
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="sector-stock" onclick="triggerCryptoPrediction('RELIANCE.NS')"><div class="font-bold text-sm" style="color:var(--text)">RELIANCE</div><div class="text-xs mb-2" style="color:var(--text-dim)">Reliance Industries</div><div id="reliance-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="reliance-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('ONGC.NS')"><div class="font-bold text-sm" style="color:var(--text)">ONGC</div><div class="text-xs mb-2" style="color:var(--text-dim)">Oil &amp; Natural Gas</div><div id="ongc-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="ongc-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('NTPC.NS')"><div class="font-bold text-sm" style="color:var(--text)">NTPC</div><div class="text-xs mb-2" style="color:var(--text-dim)">NTPC Ltd</div><div id="ntpc-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="ntpc-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('ADANIENT.NS')"><div class="font-bold text-sm" style="color:var(--text)">ADANIENT</div><div class="text-xs mb-2" style="color:var(--text-dim)">Adani Enterprises</div><div id="adanient-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="adanient-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+            </div>
+          </div>
+
+          <!-- Auto & Consumer -->
+          <div class="glass-card rounded-2xl p-5 fade-up fade-up-d3">
+            <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+              <span class="material-symbols-outlined" style="color:#a78bfa">directions_car</span>Auto, Pharma &amp; Consumer
+            </h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="sector-stock" onclick="triggerCryptoPrediction('MARUTI.NS')"><div class="font-bold text-sm" style="color:var(--text)">MARUTI</div><div class="text-xs mb-2" style="color:var(--text-dim)">Maruti Suzuki</div><div id="maruti-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="maruti-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('TATAMOTORS.NS')"><div class="font-bold text-sm" style="color:var(--text)">TATAMOTORS</div><div class="text-xs mb-2" style="color:var(--text-dim)">Tata Motors</div><div id="tatamotors-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="tatamotors-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('SUNPHARMA.NS')"><div class="font-bold text-sm" style="color:var(--text)">SUNPHARMA</div><div class="text-xs mb-2" style="color:var(--text-dim)">Sun Pharma</div><div id="sunpharma-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="sunpharma-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+              <div class="sector-stock" onclick="triggerCryptoPrediction('TITAN.NS')"><div class="font-bold text-sm" style="color:var(--text)">TITAN</div><div class="text-xs mb-2" style="color:var(--text-dim)">Titan Company</div><div id="titan-price" class="font-mono font-semibold text-sm" style="color:#00e290">—</div><div id="titan-dir" class="text-xs font-mono mt-1" style="color:var(--text-muted)">Click to predict</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ PAGE 6: SETTINGS ══ -->
+      <section id="page-settings" class="page h-full scrollable">
+        <div class="page-hero shrink-0">
+          <div class="pb-5 fade-up">
+            <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">Settings</h1>
+            <p class="text-sm mt-1" style="color:var(--text-dim)">Personalise TradeForecast to your workflow.</p>
+          </div>
+        </div>
+        <div class="p-5">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <!-- Profile Card -->
+            <div class="md:col-span-4 glass-card-accent rounded-2xl p-6 flex flex-col items-center text-center gap-4 hover-lift fade-up">
+              <div class="w-20 h-20 rounded-full border-4 flex items-center justify-center text-3xl font-black glow-emerald" style="border-color:#00e290;background:rgba(0,226,144,0.1);color:#00e290" id="settings-avatar">TF</div>
+              <div>
+                <div class="text-lg font-black" style="color:var(--text)" id="settings-username">TradeForecast</div>
+                <div class="text-xs font-mono mt-1" style="color:#00e290" id="settings-user-info">GLOBAL · TRADER</div>
+                <div class="text-xs font-mono mt-1" style="color:var(--text-muted)">Integrated Financial Console</div>
+              </div>
+              <div class="w-full border-t pt-4 space-y-3" style="border-color:var(--border)">
+                <div class="flex justify-between font-mono text-sm"><span style="color:var(--text-dim)">Backend</span><span style="color:#00e290">Predictive Engine v1</span></div>
+                <div class="flex justify-between font-mono text-sm"><span style="color:var(--text-dim)">Consensus</span><span style="color:var(--text)">Trend · Ensemble · Projection</span></div>
+                <div class="flex justify-between font-mono text-sm"><span style="color:var(--text-dim)">Asset Classes</span><span style="color:var(--text)">NSE · BSE · Crypto · Forex</span></div>
+                <div class="flex justify-between font-mono text-sm"><span style="color:var(--text-dim)">API Status</span><span id="api-status" style="color:#00e290">Checking...</span></div>
+              </div>
+              <!-- Logout -->
+              <button onclick="doLogout()" class="w-full mt-2 py-2.5 px-4 rounded-xl text-xs font-mono font-semibold uppercase tracking-widest flex items-center justify-center gap-2 transition-all" style="border:1px solid rgba(255,80,80,0.3);color:#ff8080;background:rgba(255,80,80,0.05)" onmouseover="this.style.background='rgba(255,80,80,0.1)'" onmouseout="this.style.background='rgba(255,80,80,0.05)'">
+                <span class="material-symbols-outlined text-sm">logout</span>Sign Out
+              </button>
+            </div>
+
+            <!-- Settings Panels -->
+            <div class="md:col-span-8 space-y-5 fade-up fade-up-d1">
+              <!-- User Profile Settings -->
+              <div class="glass-card rounded-2xl p-6 hover-lift">
+                <h3 class="font-bold text-base mb-4 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#00e290">account_circle</span>User Profile Details
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">Full Name</label>
+                    <input id="profile-name" type="text" class="cyber-input w-full px-3 py-2 rounded-xl text-sm" placeholder="e.g. John Doe">
+                  </div>
+                  <div>
+                    <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">Email Address</label>
+                    <input id="profile-email" type="email" class="cyber-input w-full px-3 py-2 rounded-xl text-sm" placeholder="e.g. john@example.com">
+                  </div>
+                  <div>
+                    <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">Trading Experience</label>
+                    <select id="profile-experience" class="cyber-input w-full px-3 py-2 rounded-xl text-sm cursor-pointer">
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Professional">Professional</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">Default Investment Capital</label>
+                    <input id="profile-capital" type="number" class="cyber-input w-full px-3 py-2 rounded-xl text-sm" placeholder="e.g. 50000">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">Country</label>
+                    <input id="profile-country" type="text" class="cyber-input w-full px-3 py-2 rounded-xl text-sm" placeholder="e.g. India">
+                  </div>
+                </div>
+                <button onclick="updateProfile()" class="cyber-btn mt-4 px-4 py-2.5 rounded-xl text-xs font-mono font-semibold">Save Profile Settings</button>
+                <p id="profile-status" class="text-xs font-mono mt-2 hidden"></p>
+              </div>
+              <!-- API Health -->
+              <div class="glass-card rounded-2xl p-6 hover-lift">
+                <h3 class="font-bold text-base mb-4 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#00e290">api</span>API Health Check
+                </h3>
+                <div id="health-data" class="font-mono text-sm" style="color:var(--text-dim)">Loading...</div>
+                <button onclick="checkHealth()" class="cyber-btn mt-4 px-4 py-2 rounded-xl text-xs font-mono font-semibold">Ping Backend</button>
+              </div>
+
+              <!-- Theme & Display -->
+              <div class="glass-card rounded-2xl p-6 hover-lift">
+                <h3 class="font-bold text-base mb-4 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#00e290">palette</span>Display &amp; Theme
+                </h3>
+                <div class="space-y-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <div class="font-medium text-sm" style="color:var(--text)">Dark / Light Mode</div>
+                      <div class="text-xs font-mono mt-0.5" style="color:var(--text-dim)">Switch between dark and light themes</div>
+                    </div>
+                    <button onclick="toggleTheme()" class="theme-toggle-btn" style="width:auto;border-radius:8px;padding:8px 16px;gap:8px;display:flex;align-items:center">
+                      <span class="material-symbols-outlined text-sm" id="settings-theme-icon">light_mode</span>
+                      <span class="text-xs font-mono" id="settings-theme-label">Light Mode</span>
+                    </button>
+                  </div>
+                  <div class="flex items-center justify-between border-t pt-4" style="border-color:var(--border)">
+                    <div>
+                      <div class="font-medium text-sm" style="color:var(--text)">Scanline Overlay</div>
+                      <div class="text-xs font-mono mt-0.5" style="color:var(--text-dim)">CRT scan-line aesthetic (dark mode)</div>
+                    </div>
+                    <div class="toggle-track on" id="scanline-toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+                  </div>
+                  <div class="flex items-center justify-between border-t pt-4" style="border-color:var(--border)">
+                    <div>
+                      <div class="font-medium text-sm" style="color:var(--text)">Glow Effects</div>
+                      <div class="text-xs font-mono mt-0.5" style="color:var(--text-dim)">Neon glow on key data elements</div>
+                    </div>
+                    <div class="toggle-track on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TradingView settings -->
+              <div class="glass-card rounded-2xl p-6 hover-lift">
+                <h3 class="font-bold text-base mb-4 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#00e290">candlestick_chart</span>TradingView Chart Settings
+                </h3>
+                <div class="space-y-4">
+                  <div>
+                    <label class="text-xs font-mono uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Default Chart Style</label>
+                    <select id="settings-chart-style" class="cyber-input w-full px-3 py-2 rounded-xl font-mono text-sm cursor-pointer" onchange="tvStyle=this.value">
+                      <option value="1">Candlestick</option><option value="8">Heikin Ashi</option>
+                      <option value="0">Bars (OHLC)</option><option value="9">Hollow Candles</option>
+                      <option value="2">Line</option><option value="3">Area</option>
+                      <option value="10">Baseline</option><option value="5">Renko</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-mono uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Default Interval</label>
+                    <select id="settings-interval" class="cyber-input w-full px-3 py-2 rounded-xl font-mono text-sm cursor-pointer" onchange="setTVInterval(this.value)">
+                      <option value="1m">1 min</option><option value="5m">5 min</option><option value="15m">15 min</option>
+                      <option value="30m">30 min</option><option value="1h">1 Hour</option><option value="4h">4 Hour</option>
+                      <option value="1d" selected>1 Day</option><option value="1w">1 Week</option><option value="1mo">1 Month</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /page content -->
+
+    <!-- MOBILE BOTTOM NAV -->
+    <nav class="md:hidden flex justify-around items-center h-16 border-t shrink-0 z-30" id="mobile-bottom-nav" style="background:var(--sidebar-bg);border-color:var(--border)"></nav>
+
+  </div><!-- /right column -->
+</div><!-- /main layout -->
+
+<script>
+// ─────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────
+const API_BASE = '';
+const BULL_COLOR = '#52ffac';
+const BEAR_COLOR = '#ff5050';
+const NEUT_COLOR = '#9aa5b4';
+
+// TradingView state
+let tvSymbol  = 'RELIANCE.NS';
+let tvInterval = '1d';
+let tvStyle    = '1';
+let currentTheme = localStorage.getItem('nq_theme') || 'dark';
+
+// ─────────────────────────────────────────────────────────
+// THEME
+// ─────────────────────────────────────────────────────────
+function applyTheme(t) {
+  currentTheme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('nq_theme', t);
+  const icon  = document.getElementById('theme-icon');
+  const sIcon = document.getElementById('settings-theme-icon');
+  const sLabel= document.getElementById('settings-theme-label');
+  if (icon)   icon.textContent   = t === 'dark' ? 'light_mode'  : 'dark_mode';
+  if (sIcon)  sIcon.textContent  = t === 'dark' ? 'light_mode'  : 'dark_mode';
+  if (sLabel) sLabel.textContent = t === 'dark' ? 'Light Mode'  : 'Dark Mode';
+  
+  // Update lightweight chart theme properties
+  if (lwChart) {
+    const isDark = t !== 'light';
+    lwChart.applyOptions({
+      layout: {
+        background: { type: 'solid', color: isDark ? '#151922' : '#ffffff' },
+        textColor: isDark ? '#d1d4dc' : '#333333',
+      },
+      grid: {
+        vertLines: { color: isDark ? 'rgba(43, 43, 62, 0.4)' : 'rgba(240, 243, 250, 0.5)' },
+        horzLines: { color: isDark ? 'rgba(43, 43, 62, 0.4)' : 'rgba(240, 243, 250, 0.5)' },
+      },
+      timeScale: {
+        borderColor: isDark ? '#2b2b3e' : '#d1d4dc',
+      },
+    });
+  }
+}
+function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
+
+// ─────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  const tabL = document.getElementById('tab-login');
+  const tabR = document.getElementById('tab-register');
+  const formL = document.getElementById('form-login');
+  const formR = document.getElementById('form-register');
+  const err = document.getElementById('login-err');
+  
+  if (err) err.classList.add('hidden');
+  
+  if (tab === 'login') {
+    tabL.style.borderColor = '#00e290';
+    tabL.style.color = '#00e290';
+    tabR.style.borderColor = 'transparent';
+    tabR.style.color = 'var(--text-muted)';
+    formL.classList.remove('hidden');
+    formR.classList.add('hidden');
+  } else {
+    tabR.style.borderColor = '#00e290';
+    tabR.style.color = '#00e290';
+    tabL.style.borderColor = 'transparent';
+    tabL.style.color = 'var(--text-muted)';
+    formR.classList.remove('hidden');
+    formL.classList.add('hidden');
+  }
+}
+
+function showLoginError(msg) {
+  const err = document.getElementById('login-err');
+  if (err) {
+    err.textContent = msg;
+    err.classList.remove('hidden');
+  }
+}
+
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  
+  if (err) err.classList.add('hidden');
+  if (!u || !p) {
+    showLoginError('Username and password are required.');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username: u, password: p })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showLoginError(data.detail || 'Invalid username or password');
+    } else {
+      loginSuccess(data.user);
+    }
+  } catch(e) {
+    showLoginError('Connection error: ' + e.message);
+  }
+}
+
+async function doRegister() {
+  const u = document.getElementById('reg-user').value.trim();
+  const p = document.getElementById('reg-pass').value;
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const exp = document.getElementById('reg-experience').value;
+  const capVal = document.getElementById('reg-capital').value.trim();
+  const cap = capVal ? parseFloat(capVal) : null;
+  const country = document.getElementById('reg-country').value.trim();
+  
+  const err = document.getElementById('login-err');
+  if (err) err.classList.add('hidden');
+  if (!u || !p) {
+    showLoginError('Username and password are required.');
+    return;
+  }
+  
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        username: u,
+        password: p,
+        name: name || null,
+        email: email || null,
+        trading_experience: exp || null,
+        investment_capital: cap,
+        country: country || null
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showLoginError(data.detail || 'Registration failed');
+    } else {
+      loginSuccess(data.user);
+    }
+  } catch(e) {
+    showLoginError('Connection error: ' + e.message);
+  }
+}
+
+function loginSuccess(user) {
+  localStorage.setItem('nq_auth', JSON.stringify(user));
+  document.getElementById('login-overlay').classList.add('hidden');
+  updateUserUI(user);
+  setTimeout(() => triggerPrediction('RELIANCE.NS', '1d'), 600);
+}
+
+function doLogout() {
+  localStorage.removeItem('nq_auth');
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('login-pass').value = '';
+}
+
+function updateUserUI(user) {
+  const name = user.name || user.username || 'Trader';
+  const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+  
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('settings-username').textContent = name;
+  document.getElementById('user-avatar-fallback').textContent = initials;
+  document.getElementById('settings-avatar').textContent = initials;
+  
+  const userInfo = document.getElementById('settings-user-info');
+  if (userInfo) {
+    userInfo.textContent = `${(user.country || 'Global').toUpperCase()} · ${(user.trading_experience || 'Trader').toUpperCase()}`;
+  }
+  
+  // Populate form fields
+  const fields = {
+    'profile-name': user.name || '',
+    'profile-email': user.email || '',
+    'profile-experience': user.trading_experience || 'Beginner',
+    'profile-capital': user.investment_capital || '',
+    'profile-country': user.country || ''
+  };
+  
+  for (const [id, val] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el) el.value = val;
+  }
+}
+
+async function updateProfile() {
+  const stored = localStorage.getItem('nq_auth');
+  if (!stored) return;
+  const user = JSON.parse(stored);
+  
+  const name = document.getElementById('profile-name').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
+  const exp = document.getElementById('profile-experience').value;
+  const capVal = document.getElementById('profile-capital').value.trim();
+  const cap = capVal ? parseFloat(capVal) : null;
+  const country = document.getElementById('profile-country').value.trim();
+  
+  const status = document.getElementById('profile-status');
+  status.classList.remove('hidden');
+  status.style.color = 'var(--text-dim)';
+  status.textContent = 'Updating...';
+  
+  try {
+    const res = await fetch('/api/auth/update', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        username: user.username,
+        name: name || null,
+        email: email || null,
+        trading_experience: exp || null,
+        investment_capital: cap,
+        country: country || null
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      status.textContent = 'Error: ' + (data.detail || 'Failed to update profile');
+      status.style.color = '#ff8080';
+    } else {
+      status.textContent = 'Profile updated successfully!';
+      status.style.color = '#52ffac';
+      localStorage.setItem('nq_auth', JSON.stringify(data.user));
+      updateUserUI(data.user);
+      setTimeout(() => status.classList.add('hidden'), 3000);
+    }
+  } catch(e) {
+    status.textContent = 'Error: ' + e.message;
+    status.style.color = '#ff8080';
+  }
+}
+
+function checkAuth() {
+  const stored = localStorage.getItem('nq_auth');
+  if (stored) {
+    try {
+      const user = JSON.parse(stored);
+      document.getElementById('login-overlay').classList.add('hidden');
+      updateUserUI(user);
+      return true;
+    } catch(e) {}
+  }
+  return false;
+}
+
+// Add event listener to refresh predictions when model selection changes
+document.addEventListener('DOMContentLoaded', () => {
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', () => {
+      const predSearch = document.getElementById('pred-search');
+      if (predSearch && predSearch.value.trim()) {
+        triggerPrediction(predSearch.value.trim());
+      }
+    });
+  }
+  
+  // Load comprehensive stock suggestions from the backend
+  loadStockSuggestions();
+});
+
+async function loadStockSuggestions() {
+  try {
+    const res = await fetch('/api/stocks');
+    if (res.ok) {
+      const stocks = await res.json();
+      const datalist = document.getElementById('stock-suggestions');
+      if (datalist) {
+        // Build fragment for high performance rendering of 2000+ elements
+        const fragment = document.createDocumentFragment();
+        for (const [ticker, name] of Object.entries(stocks)) {
+          const opt = document.createElement('option');
+          opt.value = ticker;
+          opt.textContent = name;
+          fragment.appendChild(opt);
+        }
+        datalist.innerHTML = '';
+        datalist.appendChild(fragment);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load stock suggestions:', e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// NAV
+// ─────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  { id:'dashboard',   icon:'dashboard',         label:'Dashboard',    mobileLabel:'Dash'    },
+  { id:'predictions', icon:'psychology_alt',    label:'Predictions',  mobileLabel:'Predict' },
+  { id:'portfolio',   icon:'pie_chart',         label:'Portfolio',    mobileLabel:'Port'    },
+  { id:'screener',    icon:'query_stats',       label:'Screener',     mobileLabel:'Screen'  },
+  { id:'crypto',      icon:'candlestick_chart', label:'NSE Sectors',  mobileLabel:'Sectors' },
+  { id:'settings',    icon:'settings',          label:'Settings',     mobileLabel:'Config'  },
+];
+let currentPage = 'dashboard';
+
+function buildNav() {
+  const desk = document.getElementById('desktop-nav-links');
+  const mob  = document.getElementById('mobile-nav-links');
+  const bot  = document.getElementById('mobile-bottom-nav');
+  desk.innerHTML = mob.innerHTML = bot.innerHTML = '';
+  NAV_ITEMS.forEach((item, i) => {
+    const active = item.id === currentPage;
+    const ac = active ? 'nav-active' : '';
+    const baseClass = 'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-sm font-medium';
+    const style = active ? '' : `style="color:var(--text-dim)"`;
+    desk.insertAdjacentHTML('beforeend', `
+      <a href="#" id="nav-${item.id}" onclick="navigateTo('${item.id}');return false;"
+         class="${baseClass} ${ac}" ${style}>
+        <span class="material-symbols-outlined text-lg">${item.icon}</span>
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider">${item.label}</span>
+      </a>`);
+    mob.insertAdjacentHTML('beforeend', `
+      <a href="#" onclick="navigateTo('${item.id}');closeMobileNav();return false;"
+         class="${baseClass} ${ac}" ${style}>
+        <span class="material-symbols-outlined text-lg">${item.icon}</span>
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider">${item.label}</span>
+      </a>`);
+    if (i < 4) {
+      bot.insertAdjacentHTML('beforeend', `
+        <a href="#" onclick="navigateTo('${item.id}');return false;"
+           class="flex flex-col items-center p-2 transition-colors" style="color:${active ? '#00e290' : 'var(--text-dim)'}">
+          <span class="material-symbols-outlined text-xl">${item.icon}</span>
+          <span style="font-size:9px;font-family:'JetBrains Mono',monospace">${item.mobileLabel}</span>
+        </a>`);
+    }
+  });
+  bot.insertAdjacentHTML('beforeend', `
+    <button onclick="openMobileNav()" class="flex flex-col items-center p-2 transition-colors" style="color:var(--text-dim)">
+      <span class="material-symbols-outlined text-xl">menu</span>
+      <span style="font-size:9px;font-family:'JetBrains Mono',monospace">More</span>
+    </button>`);
+}
+
+function navigateTo(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-'+pageId);
+  if (!target) return;
+  target.classList.add('active');
+  currentPage = pageId;
+  const item = NAV_ITEMS.find(n => n.id === pageId);
+  document.getElementById('page-title').textContent = item ? item.label : pageId;
+  buildNav();
+  document.getElementById('notif-panel').classList.remove('open');
+  closeMobileNav();
+  target.scrollTop = 0;
+  // Init TV chart when Predictions page is shown
+  if (pageId === 'predictions' && !lwChart) reinitTV(tvSymbol);
+}
+
+function openMobileNav()  { document.getElementById('mobile-nav').classList.add('open'); }
+function closeMobileNav() { document.getElementById('mobile-nav').classList.remove('open'); }
+
+function switchTechTab(tabId) {
+  document.querySelectorAll('.tech-tab-content').forEach(el => el.classList.add('hidden'));
+  const target = document.getElementById('tech-tab-' + tabId);
+  if (target) target.classList.remove('hidden');
+
+  document.querySelectorAll('.tech-tab-btn').forEach(btn => btn.classList.remove('active'));
+  const targetBtn = document.getElementById('btn-tab-' + tabId);
+  if (targetBtn) targetBtn.classList.add('active');
+}
+
+// ─────────────────────────────────────────────────────────
+// NOTIFICATION PANEL
+// ─────────────────────────────────────────────────────────
+function toggleNotifPanel() { document.getElementById('notif-panel').classList.toggle('open'); }
+document.addEventListener('click', e => {
+  const panel = document.getElementById('notif-panel');
+  const btn   = document.getElementById('notif-btn-wrap');
+  if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.remove('open');
+});
+
+// ─────────────────────────────────────────────────────────
+// TERMINAL
+// ─────────────────────────────────────────────────────────
+function openTerminal()  { document.getElementById('terminal-modal').classList.add('open'); setTimeout(()=>document.getElementById('terminal-input').focus(),100); }
+function closeTerminal() { document.getElementById('terminal-modal').classList.remove('open'); }
+
+async function handleTerminalInput(e) {
+  if (e.key !== 'Enter') return;
+  const input = document.getElementById('terminal-input');
+  const out   = document.getElementById('terminal-output');
+  const raw = input.value.trim();
+  if (!raw) return;
+  input.value = '';
+  out.insertAdjacentHTML('beforeend', `<div style="color:var(--text-dim);margin-top:6px"><span style="color:#00e290">$</span> ${raw}</div>`);
+  const [cmd, ...args] = raw.split(' ');
+  const arg = args.join(' ').toUpperCase();
+
+  const cmds = {
+    help:    () => out.insertAdjacentHTML('beforeend', `<div style="color:var(--text-dim);margin-top:4px">Commands: <span style="color:#00e290">predict [SYM]</span>, <span style="color:#00e290">price [SYM]</span>, <span style="color:#00e290">scan</span>, <span style="color:#00e290">health</span>, <span style="color:#00e290">theme [dark|light]</span>, <span style="color:#00e290">clear</span></div>`),
+    clear:   () => { out.innerHTML = '<div style="color:#00e290">Terminal cleared.</div>'; },
+    theme:   () => { applyTheme(arg.toLowerCase() === 'light' ? 'light' : 'dark'); out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Theme set to ${currentTheme}</div>`); },
+    health:  async () => {
+      out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Pinging backend...</div>`);
+      const r = await fetch('/api/health').then(r=>r.json()).catch(()=>({status:'error'}));
+      out.insertAdjacentHTML('beforeend', `<div style="color:var(--text);margin-top:4px">${JSON.stringify(r)}</div>`);
+    },
+    predict: () => {
+      if (!arg) { out.insertAdjacentHTML('beforeend', `<div style="color:#ff8080;margin-top:4px">Usage: predict RELIANCE.NS</div>`); return; }
+      out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Fetching prediction for ${arg}...</div>`);
+      closeTerminal(); triggerPrediction(arg);
+    },
+    scan: () => { out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Loading scanner...</div>`); closeTerminal(); navigateTo('screener'); loadScanResults(); },
+    price: async () => {
+      if (!arg) { out.insertAdjacentHTML('beforeend', `<div style="color:#ff8080;margin-top:4px">Usage: price TCS.NS</div>`); return; }
+      out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Fetching price for ${arg}...</div>`);
+      const r = await fetch(`/api/predict/${encodeURIComponent(arg)}`).then(r=>r.json()).catch(()=>null);
+      if (r) out.insertAdjacentHTML('beforeend', `<div style="color:var(--text);margin-top:4px">${arg}: ${r.currency_symbol||'₹'}${r.current_price} | ${r.prediction_direction} | Conf: ${r.confidence_score}%</div>`);
+    }
+  };
+  if (cmds[cmd.toLowerCase()]) await cmds[cmd.toLowerCase()]();
+  else out.insertAdjacentHTML('beforeend', `<div style="color:#ff8080;margin-top:4px">Unknown command: ${cmd}. Type help.</div>`);
+  out.scrollTop = out.scrollHeight;
+}
+
+// ─────────────────────────────────────────────────────────
+// TRADINGVIEW LIGHTWEIGHT CHARTS INTEGRATION
+// ─────────────────────────────────────────────────────────
+let lwChart = null;
+let activeSeries = null;
+let lwPredictionSeries = null;
+let activePredictionData = null;
+
+const styleMap = {
+  '1': 'Candles',
+  '8': 'Heikin Ashi',
+  '0': 'Bars',
+  '9': 'Hollow',
+  '2': 'Line',
+  '3': 'Area',
+  '10': 'Baseline',
+  '5': 'Renko'
+};
+
+function toTVSymbol(ticker) {
+  const map = {
+    '^NSEI':    'NSE:NIFTY',
+    '^BSESN':   'BSE:SENSEX',
+    '^NSEBANK': 'NSE:BANKNIFTY',
+    'BTC-USD':  'BINANCE:BTCUSDT',
+    'ETH-USD':  'BINANCE:ETHUSDT',
+    'SOL-USD':  'BINANCE:SOLUSDT',
+    'BNB-USD':  'BINANCE:BNBUSDT',
+  };
+  if (map[ticker]) return map[ticker];
+  if (ticker.endsWith('.NS')) return 'NSE:' + ticker.replace('.NS','');
+  if (ticker.endsWith('.BO')) return 'BSE:' + ticker.replace('.BO','');
+  return ticker;
+}
+
+function reinitTV(ticker) {
+  const sym = toTVSymbol(ticker);
+  tvSymbol = ticker;
+  
+  // Update links to TradingView search symbol page
+  const tvSearchSym = sym.replace(':', '-');
+  const extLink = document.getElementById('tv-external-link');
+  if (extLink) {
+    extLink.href = `https://in.tradingview.com/symbols/${tvSearchSym}/`;
+  }
+  
+  // Clean up lightweight chart reference if it exists
+  const container = document.getElementById('tv-chart-container');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="flex items-center justify-center h-full text-sm font-mono" style="color:var(--text-dim)">
+      <div class="text-center">
+        <div class="spinner mx-auto mb-3"></div>
+        <div>Loading chart data for ${ticker}...</div>
+      </div>
+    </div>`;
+    
+  lwChart = null;
+  activeSeries = null;
+  lwPredictionSeries = null;
+}
+
+function initLightweightChart() {
+  const container = document.getElementById('tv-chart-container');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  const isDark = currentTheme !== 'light';
+  
+  lwChart = LightweightCharts.createChart(container, {
+    width: container.clientWidth,
+    height: 520,
+    layout: {
+      background: { type: 'solid', color: isDark ? '#151922' : '#ffffff' },
+      textColor: isDark ? '#d1d4dc' : '#333333',
+    },
+    grid: {
+      vertLines: { color: isDark ? 'rgba(43, 43, 62, 0.4)' : 'rgba(240, 243, 250, 0.5)' },
+      horzLines: { color: isDark ? 'rgba(43, 43, 62, 0.4)' : 'rgba(240, 243, 250, 0.5)' },
+    },
+    timeScale: {
+      borderColor: isDark ? '#2b2b3e' : '#d1d4dc',
+      timeVisible: true,
+      secondsVisible: false,
+    },
+    handleScroll: {
+      mouseWheel: false,
+      pressedMouseMove: true,
+      horzTouchDrag: true,
+      vertTouchDrag: true,
+    },
+    handleScale: {
+      axisPressedMouseMove: true,
+      mouseWheel: false,
+      pinch: true,
+    },
+  });
+
+  // Observe container resize to make the chart responsive
+  const resizeObserver = new ResizeObserver(entries => {
+    if (entries.length === 0 || entries[0].target !== container || !lwChart) return;
+    const newWidth = entries[0].contentRect.width;
+    lwChart.resize(newWidth, 520);
+  });
+  resizeObserver.observe(container);
+}
+
+function renderLightweightChartData(hvp, styleType = 'Candles') {
+  if (!lwChart) {
+    initLightweightChart();
+  }
+  
+  // Clear any existing series
+  if (activeSeries) {
+    try { lwChart.removeSeries(activeSeries); } catch(e){}
+    activeSeries = null;
+  }
+  if (lwPredictionSeries) {
+    try { lwChart.removeSeries(lwPredictionSeries); } catch(e){}
+    lwPredictionSeries = null;
+  }
+
+  // 1. Format Historical Price Data
+  let priceData = [];
+  if (styleType === 'Heikin Ashi') {
+    let prevOpen = null;
+    let prevClose = null;
+    hvp.forEach((item, index) => {
+      const open = item.open;
+      const high = item.high;
+      const low = item.low;
+      const close = item.actual;
+      
+      let haClose = (open + high + low + close) / 4;
+      let haOpen = index === 0 ? (open + close) / 2 : (prevOpen + prevClose) / 2;
+      let haHigh = Math.max(high, haOpen, haClose);
+      let haLow = Math.min(low, haOpen, haClose);
+      
+      prevOpen = haOpen;
+      prevClose = haClose;
+      
+      priceData.push({
+        time: item.date,
+        open: haOpen,
+        high: haHigh,
+        low: haLow,
+        close: haClose
+      });
+    });
+  } else {
+    priceData = hvp.map(item => ({
+      time: item.date,
+      open: item.open,
+      high: item.high,
+      low: item.low,
+      close: item.actual
+    }));
+  }
+
+  // Ensure times are sorted chronologically
+  priceData.sort((a,b) => a.time.localeCompare(b.time));
+
+  // 2. Add series depending on styleType
+  if (styleType === 'Line') {
+    activeSeries = lwChart.addLineSeries({
+      color: '#00e290',
+      lineWidth: 2,
+    });
+    activeSeries.setData(priceData.map(d => ({ time: d.time, value: d.close })));
+  } else if (styleType === 'Area') {
+    activeSeries = lwChart.addAreaSeries({
+      topColor: 'rgba(0, 226, 144, 0.4)',
+      bottomColor: 'rgba(0, 226, 144, 0.0)',
+      lineColor: '#00e290',
+      lineWidth: 2,
+    });
+    activeSeries.setData(priceData.map(d => ({ time: d.time, value: d.close })));
+  } else if (styleType === 'Bars') {
+    activeSeries = lwChart.addBarSeries({
+      upColor: '#00e290',
+      downColor: '#ff5050',
+    });
+    activeSeries.setData(priceData);
+  } else {
+    // Candles or Hollow
+    activeSeries = lwChart.addCandlestickSeries({
+      upColor: '#00e290',
+      downColor: '#ff5050',
+      borderUpColor: '#00e290',
+      borderDownColor: '#ff5050',
+      wickUpColor: '#00e290',
+      wickDownColor: '#ff5050',
+      ...(styleType === 'Hollow' ? {
+        fillUpColor: 'transparent',
+        fillDownColor: 'transparent',
+      } : {})
+    });
+    activeSeries.setData(priceData);
+  }
+
+  // 3. Add AI predictions as a dashed blue line
+  lwPredictionSeries = lwChart.addLineSeries({
+    color: '#60a5fa',
+    lineWidth: 2,
+    lineStyle: 2, // Dashed line
+    title: 'AI Prediction',
+    priceLineVisible: false,
+  });
+
+  const predictionData = hvp.map(item => ({
+    time: item.date,
+    value: item.predicted
+  })).sort((a,b) => a.time.localeCompare(b.time));
+
+  lwPredictionSeries.setData(predictionData);
+
+  // 4. Fit the time scale to show the data nicely
+  lwChart.timeScale().fitContent();
+}
+
+function setTVInterval(interval) {
+  tvInterval = interval;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+  
+  const btns = document.querySelectorAll('.tf-btn');
+  btns.forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${interval}'`)) {
+      b.classList.add('active');
+    }
+  });
+
+  const tfSelect = document.getElementById('timeframe-select');
+  if (tfSelect) tfSelect.value = interval;
+  const settingsSelect = document.getElementById('settings-interval');
+  if (settingsSelect) settingsSelect.value = interval;
+
+  // Load the new timeframe from the backend
+  triggerPrediction(tvSymbol);
+}
+
+function setTVStyle(styleCode, label, btn) {
+  tvStyle = styleCode;
+  document.querySelectorAll('.chart-type-btn').forEach(b => b.classList.remove('active'));
+  if (btn) {
+    btn.classList.add('active');
+  } else {
+    const btns = document.querySelectorAll('.chart-type-btn');
+    btns.forEach(b => {
+      if (b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${styleCode}'`)) {
+        b.classList.add('active');
+      }
+    });
+  }
+  
+  if (activePredictionData) {
+    const styleName = styleMap[styleCode] || 'Candles';
+    renderLightweightChartData(activePredictionData, styleName);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// AI PREDICTION ENGINE
+// ─────────────────────────────────────────────────────────
+// Map TV intervals back to our API timeframe codes
+function tvIntervalToAPI(iv) {
+  return iv;
+}
+
+async function triggerPrediction(ticker, timeframeOverride) {
+  const tf = timeframeOverride || tvIntervalToAPI(tvInterval);
+  const loadingEl = document.getElementById('pred-loading');
+  if (loadingEl) loadingEl.classList.remove('hidden');
+
+  // Switch to predictions page & start TV chart
+  navigateTo('predictions');
+  reinitTV(ticker);
+
+  // Update search inputs
+  ['pred-search','global-search'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = ticker;
+  });
+
+  try {
+    const res = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=${tf}`);
+    if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    renderPrediction(data, ticker);
+    addNotification(`AI Prediction: ${ticker} → ${data.prediction_direction} (${data.confidence_score}%)`);
+  } catch(e) {
+    console.error('Prediction error:', e);
+    const result = document.getElementById('predict-result');
+    if (result) result.innerHTML = `<div class="text-center text-sm font-mono" style="color:#ff8080">Error: ${e.message}</div>`;
+  } finally {
+    if (loadingEl) loadingEl.classList.add('hidden');
+  }
+}
+
+function renderPrediction(data, ticker) {
+  const sym = data.currency_symbol || '₹';
+  const dir = data.prediction_direction;
+  const conf = data.confidence_score;
+  const price = data.current_price;
+  const forecast = data.forecast_price;
+  const bullCol = '#52ffac', bearCol = '#ff5050', neutCol = '#9aa5b4';
+  const col = dir === 'Bullish' ? bullCol : (dir === 'Bearish' ? bearCol : neutCol);
+
+  // Dashboard stat cards
+  const setEl = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+  const setStyle = (id, k, v) => { const e = document.getElementById(id); if(e) e.style[k] = v; };
+
+  setEl('stat-confidence-val', `${conf}%`);
+  const bar = document.getElementById('stat-confidence-bar');
+  if (bar) { setTimeout(() => bar.style.width = `${conf}%`, 100); }
+  setEl('stat-direction', dir === 'Bullish' ? '📈 Bullish' : dir === 'Bearish' ? '📉 Bearish' : '➡️ Neutral');
+  setStyle('stat-direction','color', col);
+  setEl('stat-ticker-label', ticker);
+  setEl('stat-sentiment', data.sentiment_label || '—');
+  setEl('stat-sentiment-score', `Score: ${(data.sentiment_score||0).toFixed(2)}`);
+  setEl('stat-price', `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}`);
+  setEl('stat-forecast', `Forecast: ${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`);
+
+  // Predictions page header
+  setEl('chart-title', data.stock_name ? `${data.stock_name} (${ticker})` : ticker);
+  setEl('chart-price', `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}`);
+  setEl('chart-forecast', `${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`);
+  const chip = document.getElementById('chart-direction-chip');
+  if (chip) { chip.textContent = dir; chip.className = `${dir==='Bullish'?'chip-bull':dir==='Bearish'?'chip-bear':'chip-hold'} px-2 py-0.5 rounded text-xs`; }
+
+  // Dashboard predict result panel
+  const result = document.getElementById('predict-result');
+  if (result) {
+    result.innerHTML = `
+      <div class="w-full space-y-3 fade-in">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-lg font-black leading-tight" style="color:var(--text)">${data.stock_name || ticker}</div>
+            <div class="text-xs font-mono" style="color:var(--text-dim)">${ticker} · Prediction (${tvIntervalToAPI(tvInterval)})</div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-black" style="color:${col}">${dir}</div>
+            <div class="text-sm font-mono" style="color:var(--text-dim)">Conf: ${conf}%</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+            <div class="text-xs font-mono mb-1" style="color:var(--text-dim)">Current Price</div>
+            <div class="text-lg font-black" style="color:var(--text)">${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+          </div>
+          <div class="rounded-xl p-3" style="background:var(--bg-raised)">
+            <div class="text-xs font-mono mb-1" style="color:var(--text-dim)">AI Forecast</div>
+            <div class="text-lg font-black" style="color:#00e290">${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+          </div>
+        </div>
+        <div class="w-full h-1 rounded-full overflow-hidden" style="background:var(--bg-raised)">
+          <div style="width:${conf}%;background:${col};height:100%;border-radius:4px;transition:width 0.7s"></div>
+        </div>
+        <button onclick="navigateTo('predictions')" class="cyber-btn w-full py-2 px-4 rounded-xl text-xs font-mono font-semibold">Open Full Chart &amp; TradingView →</button>
+      </div>`;
+  }
+
+  // Technical indicators
+  renderIndicators(data);
+
+  // News feed
+  const newsFeed = document.getElementById('news-feed');
+  if (newsFeed && data.news_headlines?.length) {
+    newsFeed.innerHTML = data.news_headlines.slice(0,5).map(h =>
+      `<li class="text-xs border-b py-2 leading-relaxed" style="color:var(--text-dim);border-color:var(--border)">${h}</li>`).join('');
+  }
+
+  // Sentiment
+  const sentDisp = document.getElementById('sentiment-display');
+  if (sentDisp) {
+    sentDisp.classList.remove('hidden');
+    const score = data.sentiment_score || 0.5;
+    setEl('sentiment-score-val', score.toFixed(2));
+    const sbar = document.getElementById('sentiment-bar');
+    if (sbar) { setTimeout(() => { sbar.style.width = `${score*100}%`; sbar.style.background = score > 0.6 ? BULL_COLOR : score < 0.4 ? BEAR_COLOR : '#60a5fa'; }, 100); }
+    setEl('sentiment-label', data.sentiment_label || '—');
+  }
+
+  // Agent ReAct logs
+  const rt = document.getElementById('react-terminal');
+  if (rt && data.agent_log?.length) {
+    rt.innerHTML = data.agent_log.map(l => `<div style="margin-bottom:2px">${formatAgentLog(l)}</div>`).join('');
+    rt.scrollTop = rt.scrollHeight;
+  }
+
+  // Agent log panel on dashboard
+  const alp = document.getElementById('agent-log-panel');
+  if (alp && data.agent_log?.length) {
+    alp.innerHTML = data.agent_log.slice(-8).map(l => `<div>${formatAgentLog(l)}</div>`).join('');
+    alp.scrollTop = alp.scrollHeight;
+  }
+
+  // Plotly AI overlay chart
+  const hvp = data.historical_vs_predicted || [];
+  if (hvp.length) renderPlotlyChart('main-chart', hvp, sym, dir, true);
+
+  // Lightweight charts render
+  activePredictionData = hvp;
+  if (hvp.length) {
+    const styleName = styleMap[tvStyle] || 'Candles';
+    renderLightweightChartData(hvp, styleName);
+  }
+
+  // Update index cards on dashboard
+  const idxMap = { '^NSEI': 'idx-nsei', '^BSESN': 'idx-bsesn', '^NSEBANK': 'idx-nsebank' };
+  if (idxMap[ticker]) {
+    const pfx = idxMap[ticker];
+    setEl(`${pfx}-price`, `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:0})}`);
+    const chgEl = document.getElementById(`${pfx}-chg`);
+    if (chgEl) { chgEl.textContent = dir; chgEl.style.color = col; }
+  }
+}
+
+function formatAgentLog(line) {
+  if (line.startsWith('THOUGHT:'))    return `<span style="color:#60a5fa">🧠 ${line}</span>`;
+  if (line.startsWith('ACTION:'))     return `<span style="color:#f59e0b">⚡ ${line}</span>`;
+  if (line.startsWith('OBSERVATION:'))return `<span style="color:#00e290">👁️ ${line}</span>`;
+  return `<span style="color:var(--text-dim)">${line}</span>`;
+}
+
+function renderIndicators(data) {
+  const tbody = document.getElementById('indicators-tbody');
+  if (!tbody) return;
+
+  const indicators = data.indicators || [];
+  if (!indicators.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center italic text-xs" style="color:var(--text-muted)">No indicator data available</td></tr>';
+  } else {
+    tbody.innerHTML = indicators.map(ind => {
+      let sigColor = 'var(--text-dim)';
+      let sigText = ind.signal || 'HOLD';
+      if (ind.signal === 'Buy') {
+        sigColor = '#00e290';
+        sigText = '▲ BUY';
+      } else if (ind.signal === 'Sell') {
+        sigColor = '#ff5050';
+        sigText = '▼ SELL';
+      } else if (ind.signal === 'Hold') {
+        sigColor = '#94a3b8';
+        sigText = '➡️ HOLD';
+      }
+      
+      let strengthColor = 'var(--text-dim)';
+      if (ind.strength === 'Strong') strengthColor = '#eab308';
+      else if (ind.strength === 'Moderate') strengthColor = '#60a5fa';
+      else if (ind.strength === 'Weak') strengthColor = '#94a3b8';
+
+      return `<tr class="border-b" style="border-color:var(--border)">
+        <td class="py-3 font-semibold text-xs" style="color:var(--text)">${ind.name}</td>
+        <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${ind.value}</td>
+        <td class="py-3 text-right font-bold text-xs" style="color:${sigColor}">${sigText}</td>
+        <td class="py-3 text-right font-semibold text-xs" style="color:${strengthColor}">${ind.strength}</td>
+        <td class="py-3 text-left pl-4 text-xs max-w-xs leading-relaxed font-mono" style="color:var(--text-dim)">${ind.reason}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Populate Fibonacci Levels
+  const fibTbody = document.getElementById('fibonacci-tbody');
+  if (fibTbody) {
+    const fib = data.fibonacci_levels || {};
+    if (!Object.keys(fib).length) {
+      fibTbody.innerHTML = '<tr><td colspan="3" class="py-6 text-center italic text-xs" style="color:var(--text-muted)">No Fibonacci levels calculated</td></tr>';
+    } else {
+      const currentPrice = data.current_price || 0;
+      fibTbody.innerHTML = Object.entries(fib).map(([level, val]) => {
+        let status = '—';
+        if (currentPrice > 0) {
+          const diffPct = ((currentPrice - val) / val) * 100;
+          if (Math.abs(diffPct) <= 2) {
+            status = `<span style="color:#eab308; font-weight:bold">⚠️ Price near level (${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(1)}%)</span>`;
+          } else {
+            status = `<span style="color:var(--text-dim)">Price is ${Math.abs(diffPct).toFixed(1)}% ${diffPct > 0 ? 'above (Support)' : 'below (Resistance)'}</span>`;
+          }
+        }
+        return `<tr class="border-b" style="border-color:var(--border)">
+          <td class="py-3 font-semibold text-xs" style="color:#00e290">${level}</td>
+          <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${val.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          <td class="py-3 text-left pl-4 text-xs font-mono">${status}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  // Populate Pivot Points
+  const pivTbody = document.getElementById('pivots-tbody');
+  if (pivTbody) {
+    const pivots = data.pivot_points || {};
+    if (!Object.keys(pivots).length) {
+      pivTbody.innerHTML = '<tr><td colspan="3" class="py-6 text-center italic text-xs" style="color:var(--text-muted)">No Pivot points calculated</td></tr>';
+    } else {
+      pivTbody.innerHTML = Object.entries(pivots).map(([name, val]) => {
+        const uppercaseName = name.toUpperCase();
+        let typeText = 'Pivot Point';
+        let typeColor = '#60a5fa';
+        if (uppercaseName.startsWith('R')) {
+          typeText = 'Resistance';
+          typeColor = '#ff5050';
+        } else if (uppercaseName.startsWith('S')) {
+          typeText = 'Support';
+          typeColor = '#00e290';
+        }
+        return `<tr class="border-b" style="border-color:var(--border)">
+          <td class="py-3 font-semibold text-xs" style="color:var(--text)">${uppercaseName}</td>
+          <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${val.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          <td class="py-3 text-left pl-4 text-xs font-bold font-mono" style="color:${typeColor}">${typeText}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  // Populate AI Consensus Cards
+  const consensus = data.consensus || {};
+  const actionEl = document.getElementById('consensus-action');
+  if (actionEl) {
+    actionEl.textContent = consensus.action || 'HOLD';
+    let cardBorderCol = 'var(--border)';
+    let actionCol = 'var(--text)';
+    if (consensus.action === 'BUY') {
+      actionCol = '#00e290';
+      cardBorderCol = '#00e290';
+    } else if (consensus.action?.includes('SELL')) {
+      actionCol = '#ff5050';
+      cardBorderCol = '#ff5050';
+    } else if (consensus.action?.includes('HOLD')) {
+      actionCol = '#60a5fa';
+      cardBorderCol = '#60a5fa';
+    }
+    actionEl.style.color = actionCol;
+    const card = document.getElementById('consensus-card');
+    if (card) card.style.borderLeftColor = cardBorderCol;
+  }
+
+  const confEl = document.getElementById('consensus-confidence');
+  if (confEl) {
+    confEl.textContent = `Conf: ${consensus.confidence || 'Low'}`;
+  }
+
+  const durEl = document.getElementById('consensus-duration');
+  if (durEl) {
+    durEl.textContent = consensus.duration || '—';
+  }
+
+  const ratEl = document.getElementById('consensus-rationale');
+  if (ratEl) {
+    ratEl.textContent = consensus.rationale || 'Consensus data not available.';
+  }
+
+  // Populate Best Indicator Card
+  const bestNameEl = document.getElementById('best-indicator-name');
+  if (bestNameEl) {
+    bestNameEl.textContent = consensus.best_indicator || '—';
+  }
+  const bestAccEl = document.getElementById('best-indicator-accuracy');
+  if (bestAccEl) {
+    bestAccEl.textContent = consensus.best_accuracy ? `Historical Accuracy: ${consensus.best_accuracy}%` : 'Accuracy: —';
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// PLOTLY CHART
+// ─────────────────────────────────────────────────────────
+function renderPlotlyChart(containerId, hvp, sym, dir, showForecast) {
+  const el = document.getElementById(containerId);
+  if (!el || !hvp.length) return;
+  const isDark = currentTheme !== 'light';
+  const dates    = hvp.map(d => d.date);
+  const actuals  = hvp.map(d => d.actual);
+  const preds    = hvp.map(d => d.predicted);
+  const col = dir === 'Bullish' ? '#52ffac' : dir === 'Bearish' ? '#ff5050' : '#60a5fa';
+  const layout = {
+    paper_bgcolor:'transparent', plot_bgcolor:'transparent',
+    font:{ family:"'JetBrains Mono',monospace", size:11, color: isDark ? '#9aa5b4' : '#4b5563' },
+    margin:{ t:10,b:40,l:60,r:16 },
+    xaxis:{ gridcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)', zeroline:false, tickfont:{size:10} },
+    yaxis:{ gridcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)', zeroline:false, tickfont:{size:10}, tickprefix:sym },
+    legend:{ orientation:'h', y:-0.15, font:{size:10} },
+    hovermode:'x unified',
+    showlegend:true,
+  };
+  const traces = [
+    { x:dates, y:actuals, type:'scatter', mode:'lines', name:'Actual', line:{ color: isDark ? '#b9cbbd' : '#374151', width:1.5 } },
+    { x:dates, y:preds,   type:'scatter', mode:'lines', name:'AI Prediction', line:{ color:col, width:2, dash:'dot' } },
+  ];
+  if (showForecast && preds.length) {
+    traces.push({ x:[dates[dates.length-1]], y:[preds[preds.length-1]], type:'scatter', mode:'markers', name:'Forecast', marker:{ color:col, size:10, symbol:'diamond' } });
+  }
+  Plotly.newPlot(containerId, traces, layout, { responsive:true, displaylogo:false, modeBarButtonsToRemove:['lasso2d','select2d'] });
+}
+
+// ─────────────────────────────────────────────────────────
+// NSE SECTORS: click-through to full chart
+// ─────────────────────────────────────────────────────────
+async function triggerCryptoPrediction(ticker) {
+  // Open full prediction on Predictions page
+  triggerPrediction(ticker);
+  // Also update card instantly
+  try {
+    const data = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=1M`).then(r=>r.json());
+    const sym = data.currency_symbol || '₹';
+    const dir = data.prediction_direction;
+    const col = dir==='Bullish' ? BULL_COLOR : dir==='Bearish' ? BEAR_COLOR : NEUT_COLOR;
+    const cardId = ticker.replace('.NS','').replace('.BO','').replace(/\^/,'').replace(/-/,'').toLowerCase();
+    const pe = document.getElementById(`${cardId}-price`);
+    const de = document.getElementById(`${cardId}-dir`);
+    if (pe) pe.textContent = `${sym}${data.current_price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+    if (de) { de.textContent = dir; de.style.color = col; }
+  } catch(e) {}
+}
+
+// ─────────────────────────────────────────────────────────
+// BACKTESTER
+// ─────────────────────────────────────────────────────────
+async function runBacktest() {
+  const ticker = (document.getElementById('bt-ticker').value||'RELIANCE.NS').trim().toUpperCase();
+  const tf     = document.getElementById('bt-timeframe').value || '1M';
+  const capital= parseFloat(document.getElementById('bt-capital').value) || 100000;
+  const btn    = document.getElementById('bt-run-btn');
+  const loading= document.getElementById('bt-loading');
+
+  btn.disabled = true; btn.textContent = 'Running...';
+  loading && loading.classList.remove('hidden');
+  ['bt-strat-return','bt-bench-return','bt-sharpe','bt-winrate','bt-drawdown','bt-trades'].forEach(id => {
+    const e = document.getElementById(id); if(e) e.textContent = '—';
+  });
+
+  try {
+    const res = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=${tf}`);
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    const data = await res.json();
+    const hvp  = data.historical_vs_predicted || [];
+    if (!hvp.length) throw new Error('No historical data');
+
+    const sym = data.currency_symbol || '₹';
+    // Simulate AI strategy vs buy-and-hold
+    let equity = capital, bench = capital, trades = 0, wins = 0;
+    const eqCurve = [capital], bhCurve = [capital], dates = [hvp[0].date];
+    let peak = capital, maxDD = 0;
+    for (let i = 1; i < hvp.length; i++) {
+      const ret  = (hvp[i].actual - hvp[i-1].actual) / hvp[i-1].actual;
+      const pret = (hvp[i].predicted - hvp[i-1].predicted) / hvp[i-1].predicted;
+      bench  += bench * ret;
+      const signal = pret > 0.002 ? 1 : pret < -0.002 ? -1 : 0;
+      if (signal !== 0) { equity += equity * (signal * ret * 0.95); trades++; if (ret > 0 === signal > 0) wins++; }
+      peak = Math.max(peak, equity); maxDD = Math.max(maxDD, (peak-equity)/peak);
+      eqCurve.push(equity); bhCurve.push(bench); dates.push(hvp[i].date);
+    }
+    const stratR = ((equity-capital)/capital*100).toFixed(2);
+    const benchR = ((bench-capital)/capital*100).toFixed(2);
+    const sr = (((equity-capital)/capital) / (maxDD||0.01)).toFixed(2);
+    const wr = trades > 0 ? ((wins/trades)*100).toFixed(1)+'%' : 'N/A';
+    const col = parseFloat(stratR) > 0 ? BULL_COLOR : BEAR_COLOR;
+
+    document.getElementById('bt-strat-return').textContent = `${stratR}%`;
+    document.getElementById('bt-strat-return').style.color = col;
+    document.getElementById('bt-bench-return').textContent = `${benchR}%`;
+    document.getElementById('bt-bench-return').style.color = parseFloat(benchR)>0 ? BULL_COLOR : BEAR_COLOR;
+    document.getElementById('bt-sharpe').textContent   = sr;
+    document.getElementById('bt-winrate').textContent  = wr;
+    document.getElementById('bt-drawdown').textContent = `${(maxDD*100).toFixed(2)}%`;
+    document.getElementById('bt-trades').textContent   = trades;
+
+    const isDark = currentTheme !== 'light';
+    Plotly.newPlot('bt-chart', [
+      { x:dates, y:eqCurve, type:'scatter', mode:'lines', name:'AI Strategy', fill:'tozeroy', fillcolor:`${col}18`, line:{ color:col, width:2 } },
+      { x:dates, y:bhCurve, type:'scatter', mode:'lines', name:'Buy & Hold',  line:{ color: isDark ? '#4b5563' : '#9ca3af', width:1.5, dash:'dot' } }
+    ], {
+      paper_bgcolor:'transparent', plot_bgcolor:'transparent',
+      font:{ family:"'JetBrains Mono',monospace", size:11, color: isDark ? '#9aa5b4' : '#4b5563' },
+      margin:{ t:10,b:40,l:60,r:16 },
+      xaxis:{ gridcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)', zeroline:false, tickfont:{size:10} },
+      yaxis:{ gridcolor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)', zeroline:false, tickprefix:sym, tickfont:{size:10} },
+      legend:{ orientation:'h', y:-0.15, font:{size:10} }, hovermode:'x unified',
+    }, { responsive:true, displaylogo:false });
+
+  } catch(e) {
+    alert(`Backtest error: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined text-sm">play_arrow</span>Run Backtest';
+    loading && loading.classList.add('hidden');
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// MARKET SCANNER
+// ─────────────────────────────────────────────────────────
+async function loadScanResults() {
+  const container = document.getElementById('screener-content');
+  container.innerHTML = '<div class="glass-card rounded-2xl p-16 text-center" style="color:var(--text-dim)"><div class="spinner mx-auto mb-3"></div><div class="text-xs font-mono">Loading scan results...</div></div>';
+  try {
+    const data = await fetch(`${API_BASE}/api/scan`).then(r=>r.json());
+    if (!data.categories || !Object.keys(data.categories).length) throw new Error('No results');
+    renderScanResults(data);
+  } catch(e) {
+    container.innerHTML = `<div class="glass-card rounded-2xl p-10 text-center text-sm font-mono" style="color:#ff8080">No scan data: ${e.message}. Try "Run New Scan".</div>`;
+  }
+}
+
+function renderScanResults(data) {
+  const container = document.getElementById('screener-content');
+  const isDark = currentTheme !== 'light';
+  let html = '';
+  for (const [cat, stocks] of Object.entries(data.categories||{})) {
+    if (!stocks?.length) continue;
+    html += `<div class="glass-card rounded-2xl p-5 mb-5 hover-lift">
+      <h3 class="font-bold text-sm mb-4 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">${cat.replace(/_/g,' ')}</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs font-mono">
+          <thead><tr class="border-b" style="border-color:var(--border);color:var(--text-dim)">
+            <th class="text-left py-2 pr-4">Symbol</th><th class="text-right py-2 pr-4">Price</th>
+            <th class="text-right py-2 pr-4">Signal</th><th class="text-right py-2 pr-4">Confidence</th><th class="text-right py-2">Sentiment</th>
+          </tr></thead>
+          <tbody>`;
+    stocks.slice(0,15).forEach(s => {
+      const col = s.signal==='Bullish' ? BULL_COLOR : s.signal==='Bearish' ? BEAR_COLOR : NEUT_COLOR;
+      html += `<tr class="screener-row border-b cursor-pointer" onclick="triggerPrediction('${s.ticker}')" style="border-color:var(--border)">
+        <td class="py-2 pr-4 font-semibold" style="color:var(--text)">${s.ticker}</td>
+        <td class="py-2 pr-4 text-right" style="color:var(--text)">${s.price ? '₹'+parseFloat(s.price).toLocaleString('en-IN',{maximumFractionDigits:2}) : '—'}</td>
+        <td class="py-2 pr-4 text-right font-semibold" style="color:${col}">${s.signal||'—'}</td>
+        <td class="py-2 pr-4 text-right" style="color:var(--text-dim)">${s.confidence_score ? s.confidence_score+'%' : '—'}</td>
+        <td class="py-2 text-right" style="color:var(--text-dim)">${s.sentiment_score ? parseFloat(s.sentiment_score).toFixed(2) : '—'}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  }
+  container.innerHTML = html || '<div class="text-center text-sm font-mono" style="color:var(--text-muted)">No scan data available.</div>';
+}
+
+async function triggerMarketScan() {
+  const loading = document.getElementById('scan-loading');
+  loading && loading.classList.remove('hidden');
+  try {
+    await fetch(`${API_BASE}/api/scan/refresh`, { method:'POST' });
+    await new Promise(r => setTimeout(r, 3000));
+    await loadScanResults();
+  } finally {
+    loading && loading.classList.add('hidden');
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// LIVE TICKER AND INDICES DATA
+// ─────────────────────────────────────────────────────────
+async function loadTickerAndIndices() {
+  try {
+    const res = await fetch('/api/ticker-prices');
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    // Update Index Cards
+    const indices = [
+      { ticker: '^NSEI', prefix: 'idx-nsei', symbol: '₹' },
+      { ticker: '^BSESN', prefix: 'idx-bsesn', symbol: '₹' },
+      { ticker: '^NSEBANK', prefix: 'idx-nsebank', symbol: '₹' }
+    ];
+    indices.forEach(idx => {
+      const val = data[idx.ticker];
+      if (val && val.price !== null) {
+        const pEl = document.getElementById(`${idx.prefix}-price`);
+        if (pEl) pEl.textContent = `${idx.symbol}${val.price.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
+        const chgEl = document.getElementById(`${idx.prefix}-chg`);
+        if (chgEl) {
+          const color = val.change >= 0 ? '#00e290' : '#ff5050';
+          const sign = val.change >= 0 ? '+' : '';
+          chgEl.textContent = `${sign}${val.change.toFixed(1)} (${sign}${val.pct_change.toFixed(2)}%)`;
+          chgEl.style.color = color;
+        }
+      }
+    });
+
+    // Update Ticker Tape
+    const tickers = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS', 'SBIN.NS', 'BAJFINANCE.NS', 'WIPRO.NS', 'AXISBANK.NS', 'TATAMOTORS.NS', 'MARUTI.NS'];
+    
+    const makePills = () => {
+      let html = `<span class="flex items-center gap-1 px-6" style="color:var(--text-dim)">🇮🇳 NSE</span>`;
+      tickers.forEach(t => {
+        const val = data[t];
+        const displayTicker = t.replace('.NS', '');
+        if (val && val.price !== null) {
+          const color = val.change >= 0 ? '#00e290' : '#ff5050';
+          const arrow = val.change >= 0 ? '▲' : '▼';
+          const sign = val.change >= 0 ? '+' : '';
+          html += `<span class="flex items-center gap-2 px-4 cursor-pointer hover:underline" onclick="triggerPrediction('${t}')">
+            <span style="color:var(--text)">${displayTicker}</span>
+            <span style="color:${color}">${arrow} ₹${val.price.toFixed(1)}</span>
+            <span class="text-xs" style="color:${color}">${sign}${val.pct_change.toFixed(2)}%</span>
+          </span>`;
+        } else {
+          html += `<span class="flex items-center gap-2 px-4">
+            <span style="color:var(--text)">${displayTicker}</span>
+            <span style="color:var(--text-muted)">—</span>
+          </span>`;
+        }
+      });
+      return html;
+    };
+
+    const trackHTML = makePills() + makePills(); // Duplicate for infinite scroll
+    const container = document.getElementById('ticker-content');
+    if (container) {
+      container.innerHTML = trackHTML;
+    }
+  } catch (e) {
+    console.error("Error loading ticker/indices:", e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// HEALTH CHECK
+// ─────────────────────────────────────────────────────────
+async function checkHealth() {
+  const el = document.getElementById('health-data');
+  const st = document.getElementById('api-status');
+  if (el) el.textContent = 'Pinging...';
+  try {
+    const data = await fetch(`${API_BASE}/api/health`).then(r=>r.json());
+    if (el) el.innerHTML = `<span style="color:#00e290">✓ ${data.engine}</span>`;
+    if (st) { st.textContent = 'ONLINE'; st.style.color = '#00e290'; }
+  } catch(e) {
+    if (el) el.innerHTML = `<span style="color:#ff8080">✗ Backend unreachable</span>`;
+    if (st) { st.textContent = 'OFFLINE'; st.style.color = '#ff5050'; }
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// NOTIFICATIONS SYSTEM
+// ─────────────────────────────────────────────────────────
+let notificationsList = [
+  { id: 1, msg: 'AI Engine online — predictions active', time: 'Now · NSE/BSE Ready', read: false }
+];
+
+function addNotification(msg) {
+  const newNotif = {
+    id: Date.now() + Math.random(),
+    msg: msg,
+    time: new Date().toLocaleTimeString(),
+    read: false
+  };
+  notificationsList.unshift(newNotif);
+  renderNotifications();
+}
+
+function markAsRead(id) {
+  const notif = notificationsList.find(n => n.id === id);
+  if (notif) {
+    notif.read = true;
+    renderNotifications();
+  }
+}
+
+function markAllAsRead() {
+  notificationsList.forEach(n => n.read = true);
+  renderNotifications();
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  
+  // Update badge visibility
+  const hasUnread = notificationsList.some(n => !n.read);
+  const badge = document.querySelector('.notif-badge');
+  if (badge) {
+    if (hasUnread) {
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (notificationsList.length === 0) {
+    list.innerHTML = `<div class="px-4 py-6 text-center text-xs italic" style="color:var(--text-muted)">No notifications</div>`;
+    return;
+  }
+
+  list.innerHTML = notificationsList.map(n => {
+    const bg = n.read ? 'transparent' : 'rgba(0,226,144,0.03)';
+    const dotColor = n.read ? 'var(--text-dim)' : '#00e290';
+    const dotClass = n.read ? '' : 'glow-emerald';
+    const opacity = n.read ? 'opacity-60' : 'opacity-100';
+    return `
+      <div class="px-4 py-3 flex gap-3 items-center justify-between transition-colors ${opacity}" style="background:${bg}">
+        <div class="flex gap-3 items-start flex-1 min-w-0 cursor-pointer" onclick="markAsRead(${n.id})">
+          <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${dotClass}" style="background:${dotColor}"></div>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium break-words" style="color:var(--text)">${n.msg}</div>
+            <div class="text-xs font-mono mt-0.5" style="color:var(--text-muted)">${n.time}</div>
+          </div>
+        </div>
+        ${!n.read ? `
+          <button onclick="markAsRead(${n.id})" class="text-2xs font-mono px-2 py-0.5 rounded border border-current text-emerald hover:bg-emerald hover:text-black transition-all shrink-0 ml-2" style="border-color:rgba(0,226,144,0.3); color:#00e290">
+            Read
+          </button>
+        ` : ''}
+      </div>`;
+  }).join('');
+}
+
+async function preloadSectorWatchlist() {
+  const tickers = [
+    'TCS.NS', 'INFY.NS', 'WIPRO.NS', 'HCLTECH.NS',
+    'HDFCBANK.NS', 'ICICIBANK.NS', 'SBIN.NS', 'BAJFINANCE.NS',
+    'RELIANCE.NS', 'ONGC.NS', 'NTPC.NS', 'ADANIENT.NS',
+    'MARUTI.NS', 'TATAMOTORS.NS', 'SUNPHARMA.NS', 'TITAN.NS'
+  ];
+  
+  try {
+    const res = await fetch(`${API_BASE}/api/predict/batch?tickers=${tickers.join(',')}&timeframe=1M`);
+    if (!res.ok) throw new Error('Failed to fetch sector predictions');
+    const batchData = await res.json();
+    
+    // Update the UI cards
+    for (const [ticker, data] of Object.entries(batchData)) {
+      if (data.status === 'success') {
+        const cardId = ticker.replace('.NS','').replace('.BO','').replace(/\^/,'').replace(/-/,'').toLowerCase();
+        const pe = document.getElementById(`${cardId}-price`);
+        const de = document.getElementById(`${cardId}-dir`);
+        
+        const sym = data.currency_symbol || '₹';
+        const dir = data.prediction_direction;
+        const col = dir === 'Bullish' ? BULL_COLOR : dir === 'Bearish' ? BEAR_COLOR : NEUT_COLOR;
+        
+        if (pe) pe.textContent = `${sym}${data.current_price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+        if (de) { 
+          de.textContent = dir; 
+          de.style.color = col; 
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Failed to preload sector watchlist:', e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Apply saved theme
+  applyTheme(currentTheme);
+
+  // Build nav
+  buildNav();
+  navigateTo('dashboard');
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeTerminal(); closeMobileNav(); }
+  });
+
+  // Auth check
+  const isAuthed = checkAuth();
+
+  // API health
+  checkHealth();
+
+  // Auto-predict on load if authenticated
+  if (isAuthed) {
+    setTimeout(() => triggerPrediction('RELIANCE.NS', '1d'), 600);
+  }
+
+  // Load live ticker prices and indices on startup
+  loadTickerAndIndices();
+  // Refresh ticker prices every 60 seconds
+  setInterval(loadTickerAndIndices, 60000);
+
+  // Preload sector watchlist on page load
+  preloadSectorWatchlist();
+
+  // Render initial notifications list
+  renderNotifications();
+});
+</script>
+</body>
+</html>

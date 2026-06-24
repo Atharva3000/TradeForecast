@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - users-db-volume:/app/data
+    environment:
+      - PORT=8000
+    restart: always
+
+volumes:
+  users-db-volume:
