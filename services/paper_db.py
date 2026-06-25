@@ -239,3 +239,74 @@ def get_order_history(username: str) -> list[dict]:
         return [dict(r) for r in cursor.fetchall()]
     finally:
         conn.close()
+
+def sync_portfolio(username: str, cash_balance: float, currency: str, positions: list, history: list = None) -> dict:
+    """
+    Sync/restore the user's portfolio from the client-side backup if the database record is empty or default.
+    """
+    username = username.strip().lower()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if portfolio already exists in database
+        cursor.execute("SELECT cash_balance FROM paper_portfolio WHERE username = ?", (username,))
+        port_row = cursor.fetchone()
+        
+        # Check if there are any active positions in database
+        cursor.execute("SELECT COUNT(*) as cnt FROM paper_positions WHERE username = ? AND quantity > 0", (username,))
+        pos_count = cursor.fetchone()["cnt"]
+        
+        # Check if there is any order history in database
+        cursor.execute("SELECT COUNT(*) as cnt FROM paper_orders WHERE username = ?", (username,))
+        order_count = cursor.fetchone()["cnt"]
+        
+        # We only sync/restore if the database has NO positions and NO history (i.e. it's a fresh/reset database)
+        if not port_row or (pos_count == 0 and order_count == 0):
+            # Restore cash balance & currency
+            cursor.execute(
+                "INSERT OR REPLACE INTO paper_portfolio (username, cash_balance, currency) VALUES (?, ?, ?)",
+                (username, cash_balance, currency)
+            )
+            
+            # Restore positions
+            cursor.execute("DELETE FROM paper_positions WHERE username = ?", (username,))
+            for pos in positions:
+                cursor.execute(
+                    "INSERT INTO paper_positions (username, ticker, average_price, quantity) VALUES (?, ?, ?, ?)",
+                    (username, pos["ticker"].strip().upper(), pos["average_price"], pos["quantity"])
+                )
+                
+            # Restore history/orders
+            if history:
+                cursor.execute("DELETE FROM paper_orders WHERE username = ?", (username,))
+                for order in history:
+                    created_at = order.get("created_at")
+                    if created_at:
+                        cursor.execute(
+                            """
+                            INSERT INTO paper_orders (username, ticker, direction, order_type, quantity, price, status, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (username, order["ticker"].strip().upper(), order["direction"].strip().upper(), 
+                             order["order_type"], order["quantity"], order["price"], order.get("status", "FILLED"), created_at)
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            INSERT INTO paper_orders (username, ticker, direction, order_type, quantity, price, status)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                            """,
+                            (username, order["ticker"].strip().upper(), order["direction"].strip().upper(), 
+                             order["order_type"], order["quantity"], order["price"], order.get("status", "FILLED"))
+                        )
+            conn.commit()
+            logger.info("Successfully synced/restored portfolio from client backup for %s", username)
+        
+        return get_portfolio(username)
+    except Exception as e:
+        conn.rollback()
+        logger.error("Error syncing portfolio for %s: %s", username, e)
+        raise e
+    finally:
+        conn.close()

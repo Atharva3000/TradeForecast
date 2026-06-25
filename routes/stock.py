@@ -526,7 +526,7 @@ class PaperResetRequest(BaseModel):
     username: str
 
 import yfinance as yf
-from services.paper_db import get_portfolio, execute_order, reset_portfolio, get_order_history
+from services.paper_db import get_portfolio, execute_order, reset_portfolio, get_order_history, sync_portfolio
 
 @router.get("/api/paper/portfolio")
 async def api_get_portfolio(username: str):
@@ -640,4 +640,41 @@ async def api_get_order_history(username: str):
         return history
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"History error: {str(e)}")
+
+class PositionSyncModel(BaseModel):
+    ticker: str
+    average_price: float
+    quantity: float
+
+class OrderSyncModel(BaseModel):
+    ticker: str
+    direction: str
+    order_type: str
+    quantity: float
+    price: float
+    status: str = "FILLED"
+    created_at: str
+
+class PaperSyncRequest(BaseModel):
+    username: str
+    cash_balance: float
+    currency: str
+    positions: list[PositionSyncModel]
+    history: list[OrderSyncModel] = []
+
+@router.post("/api/paper/sync")
+async def api_sync_portfolio(req: PaperSyncRequest):
+    try:
+        positions_list = [dict(p) for p in req.positions]
+        history_list = [dict(o) for o in req.history]
+        res = sync_portfolio(
+            username=req.username,
+            cash_balance=req.cash_balance,
+            currency=req.currency,
+            positions=positions_list,
+            history=history_list
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Sync error: {str(e)}")
 

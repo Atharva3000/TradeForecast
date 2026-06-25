@@ -6,18 +6,22 @@ import os
 if os.environ.get("VERCEL") == "1" or os.environ.get("VERCEL") is not None:
     DB_PATH = "/tmp/users.db"
 else:
-    # Check if we have write access to the project root directory
-    _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    _local_db_path = os.path.join(_project_root, "users.db")
-    try:
-        # Test if we can write to the directory
-        _test_path = os.path.join(_project_root, ".db_write_test")
-        with open(_test_path, "w") as f:
-            f.write("test")
-        os.remove(_test_path)
-        DB_PATH = _local_db_path
-    except (IOError, OSError, PermissionError):
-        DB_PATH = "/tmp/users.db"
+    # Check if running in Docker container with mounted /app/data volume
+    if os.path.exists("/app/data"):
+        DB_PATH = "/app/data/users.db"
+    else:
+        # Check if we have write access to the project root directory
+        _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _local_db_path = os.path.join(_project_root, "users.db")
+        try:
+            # Test if we can write to the directory
+            _test_path = os.path.join(_project_root, ".db_write_test")
+            with open(_test_path, "w") as f:
+                f.write("test")
+            os.remove(_test_path)
+            DB_PATH = _local_db_path
+        except (IOError, OSError, PermissionError):
+            DB_PATH = "/tmp/users.db"
 
 def get_db_connection():
     """Get a connection to the SQLite database with row factory enabled."""

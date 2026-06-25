@@ -2690,8 +2690,32 @@ async function loadPaperTrading() {
   }
   const user = JSON.parse(stored);
   const username = user.username;
+  const localBackupKey = `nq_portfolio_${username}`;
 
   try {
+    // Sync client-side backup with SQLite database on load (protects database resets)
+    const localBackup = localStorage.getItem(localBackupKey);
+    if (localBackup) {
+      try {
+        const backupData = JSON.parse(localBackup);
+        if (backupData && backupData.positions && (backupData.positions.length > 0 || (backupData.history && backupData.history.length > 0))) {
+          await fetch(`${API_BASE}/api/paper/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: username,
+              cash_balance: backupData.cash_balance,
+              currency: backupData.currency || '₹',
+              positions: backupData.positions,
+              history: backupData.history || []
+            })
+          });
+        }
+      } catch (e) {
+        console.error('Failed to sync client backup with database:', e);
+      }
+    }
+
     const res = await fetch(`${API_BASE}/api/paper/portfolio?username=${encodeURIComponent(username)}`);
     if (!res.ok) throw new Error('Failed to load portfolio');
     const data = await res.json();
@@ -2772,6 +2796,15 @@ async function loadPaperTrading() {
         `);
       });
     }
+
+    // Save snapshot to local backup for persistent state recovery
+    const backupObj = {
+      cash_balance: data.cash_balance,
+      currency: symbol,
+      positions: data.positions,
+      history: history || []
+    };
+    localStorage.setItem(localBackupKey, JSON.stringify(backupObj));
 
   } catch (e) {
     console.error('Error loading paper trading portfolio:', e);
@@ -2907,6 +2940,7 @@ async function resetPaperTrading() {
       body: JSON.stringify({ username: user.username })
     });
     if (res.ok) {
+      localStorage.removeItem(`nq_portfolio_${user.username}`);
       alert('Virtual portfolio reset successfully!');
       await loadPaperTrading();
     } else {
