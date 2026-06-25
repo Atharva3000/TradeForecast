@@ -1940,7 +1940,7 @@ function buildNav() {
     </button>`);
 }
 
-function navigateTo(pageId) {
+function navigateTo(pageId, fromTrigger = false) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById('page-'+pageId);
   if (!target) return;
@@ -1953,7 +1953,7 @@ function navigateTo(pageId) {
   closeMobileNav();
   target.scrollTop = 0;
   // Init TV chart when Predictions page is shown
-  if (pageId === 'predictions' && !lwChart) triggerPrediction(tvSymbol);
+  if (pageId === 'predictions' && !lwChart && !fromTrigger) triggerPrediction(tvSymbol);
   // Fetch paper trading details when entering the Trade tab
   if (pageId === 'screener') loadPaperTrading();
 }
@@ -2302,7 +2302,7 @@ async function triggerPrediction(ticker, timeframeOverride) {
   if (loadingEl) loadingEl.classList.remove('hidden');
 
   // Switch to predictions page & start TV chart
-  navigateTo('predictions');
+  navigateTo('predictions', true);
   reinitTV(ticker);
 
   // Update search inputs to display stock name instead of raw ticker
