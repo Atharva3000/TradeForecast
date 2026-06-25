@@ -370,6 +370,11 @@
     <div id="form-login" class="space-y-4">
       <input id="login-user" type="text" placeholder="Username" class="cyber-input w-full px-4 py-3 rounded-xl text-sm">
       <input id="login-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-3 rounded-xl text-sm" onkeydown="if(event.key==='Enter')doLogin()">
+      <!-- Remember me -->
+      <div class="flex items-center gap-2 px-1">
+        <input id="login-remember" type="checkbox" class="w-4 h-4 accent-[#00e290] bg-black/20 border-gray-600 rounded cursor-pointer" checked>
+        <label for="login-remember" class="text-xs cursor-pointer select-none" style="color:var(--text-dim)">Remember me</label>
+      </div>
       <button onclick="doLogin()" class="cyber-btn w-full py-3 px-4 rounded-xl font-semibold text-sm uppercase tracking-widest">
         Sign In
       </button>
@@ -399,6 +404,12 @@
       
       <input id="reg-country" type="text" placeholder="Country" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
       
+      <!-- Remember me -->
+      <div class="flex items-center gap-2 px-1">
+        <input id="reg-remember" type="checkbox" class="w-4 h-4 accent-[#00e290] bg-black/20 border-gray-600 rounded cursor-pointer" checked>
+        <label for="reg-remember" class="text-xs cursor-pointer select-none" style="color:var(--text-dim)">Remember me</label>
+      </div>
+
       <button onclick="doRegister()" class="cyber-btn w-full py-3 px-4 rounded-xl font-semibold text-sm uppercase tracking-widest mt-2">
         Register &amp; Sign In
       </button>
@@ -1174,11 +1185,11 @@
                 <table class="w-full text-left border-collapse font-mono text-xs">
                   <thead>
                     <tr class="border-b" style="border-color:var(--border);color:var(--text-dim)">
-                      <th class="pb-2 font-semibold">Symbol</th>
-                      <th class="pb-2 font-semibold text-right">Avg Cost</th>
-                      <th class="pb-2 font-semibold text-right">Qty</th>
-                      <th class="pb-2 font-semibold text-right">Current</th>
-                      <th class="pb-2 font-semibold text-right">PnL</th>
+                      <th class="pb-2 pr-4 font-semibold">Symbol</th>
+                      <th class="pb-2 pr-4 font-semibold text-right">Avg Cost</th>
+                      <th class="pb-2 pr-4 font-semibold text-right">Qty</th>
+                      <th class="pb-2 pr-4 font-semibold text-right">Current</th>
+                      <th class="pb-2 pr-4 font-semibold text-right">PnL</th>
                       <th class="pb-2 font-semibold text-right">Action</th>
                     </tr>
                   </thead>
@@ -1248,10 +1259,10 @@
                 <table class="w-full text-left border-collapse font-mono text-2xs">
                   <thead>
                     <tr class="border-b" style="border-color:var(--border);color:var(--text-dim)">
-                      <th class="pb-2">Time</th>
-                      <th class="pb-2">Asset</th>
-                      <th class="pb-2">Type</th>
-                      <th class="pb-2 text-right">Price</th>
+                      <th class="pb-2 pr-4">Time</th>
+                      <th class="pb-2 pr-4">Asset</th>
+                      <th class="pb-2 pr-4">Type</th>
+                      <th class="pb-2 pr-4 text-right">Price</th>
                       <th class="pb-2 text-right">Qty</th>
                     </tr>
                   </thead>
@@ -1637,14 +1648,25 @@ async function doRegister() {
 }
 
 function loginSuccess(user) {
-  localStorage.setItem('nq_auth', JSON.stringify(user));
+  const isLoginVisible = !document.getElementById('form-login').classList.contains('hidden');
+  const rememberCheckbox = isLoginVisible ? document.getElementById('login-remember') : document.getElementById('reg-remember');
+  const remember = rememberCheckbox ? rememberCheckbox.checked : false;
+  
+  if (remember) {
+    localStorage.setItem('nq_auth', JSON.stringify(user));
+    sessionStorage.removeItem('nq_auth');
+  } else {
+    sessionStorage.setItem('nq_auth', JSON.stringify(user));
+    localStorage.removeItem('nq_auth');
+  }
+  
   document.getElementById('login-overlay').classList.add('hidden');
   updateUserUI(user);
-  setTimeout(() => triggerPrediction('RELIANCE.NS', '1d'), 600);
 }
 
 function doLogout() {
   localStorage.removeItem('nq_auth');
+  sessionStorage.removeItem('nq_auth');
   document.getElementById('login-overlay').classList.remove('hidden');
   document.getElementById('login-pass').value = '';
 }
@@ -1679,7 +1701,7 @@ function updateUserUI(user) {
 }
 
 async function updateProfile() {
-  const stored = localStorage.getItem('nq_auth');
+  const stored = localStorage.getItem('nq_auth') || sessionStorage.getItem('nq_auth');
   if (!stored) return;
   const user = JSON.parse(stored);
   
@@ -1715,7 +1737,13 @@ async function updateProfile() {
     } else {
       status.textContent = 'Profile updated successfully!';
       status.style.color = '#52ffac';
-      localStorage.setItem('nq_auth', JSON.stringify(data.user));
+      
+      if (localStorage.getItem('nq_auth')) {
+        localStorage.setItem('nq_auth', JSON.stringify(data.user));
+      } else {
+        sessionStorage.setItem('nq_auth', JSON.stringify(data.user));
+      }
+      
       updateUserUI(data.user);
       setTimeout(() => status.classList.add('hidden'), 3000);
     }
@@ -1726,7 +1754,7 @@ async function updateProfile() {
 }
 
 function checkAuth() {
-  const stored = localStorage.getItem('nq_auth');
+  const stored = localStorage.getItem('nq_auth') || sessionStorage.getItem('nq_auth');
   if (stored) {
     try {
       const user = JSON.parse(stored);
@@ -1754,19 +1782,65 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStockSuggestions();
 });
 
+let STOCK_UNIVERSE = {};
+let NAME_TO_TICKER = {};
+
+function resolveTicker(inputVal) {
+  if (!inputVal) return '';
+  const upperVal = inputVal.trim().toUpperCase();
+  if (NAME_TO_TICKER[upperVal]) {
+    return NAME_TO_TICKER[upperVal];
+  }
+  if (STOCK_UNIVERSE[upperVal]) {
+    return upperVal;
+  }
+  return upperVal;
+}
+
+function getStockName(ticker) {
+  if (!ticker) return '';
+  const cleanTicker = ticker.trim().toUpperCase();
+  if (STOCK_UNIVERSE && STOCK_UNIVERSE[cleanTicker]) {
+    return STOCK_UNIVERSE[cleanTicker];
+  }
+  const fallback = {
+    '^NSEI': 'Nifty 50',
+    '^BSESN': 'Sensex',
+    '^NSEBANK': 'Bank Nifty',
+    'RELIANCE.NS': 'Reliance',
+    'TCS.NS': 'TCS',
+    'HDFCBANK.NS': 'HDFC Bank',
+    'INFY.NS': 'Infosys',
+    'ICICIBANK.NS': 'ICICI Bank',
+    'SBIN.NS': 'SBI',
+    'BAJFINANCE.NS': 'Bajaj Finance',
+    'WIPRO.NS': 'Wipro',
+    'AXISBANK.NS': 'Axis Bank'
+  };
+  return fallback[cleanTicker] || ticker;
+}
+
 async function loadStockSuggestions() {
   try {
     const res = await fetch('/api/stocks');
     if (res.ok) {
       const stocks = await res.json();
+      STOCK_UNIVERSE = stocks;
+      NAME_TO_TICKER = {};
+      for (const [ticker, name] of Object.entries(stocks)) {
+        if (name) {
+          NAME_TO_TICKER[name.toUpperCase()] = ticker;
+        }
+      }
+      
       const datalist = document.getElementById('stock-suggestions');
       if (datalist) {
         // Build fragment for high performance rendering of 2000+ elements
         const fragment = document.createDocumentFragment();
         for (const [ticker, name] of Object.entries(stocks)) {
           const opt = document.createElement('option');
-          opt.value = ticker;
-          opt.textContent = name;
+          opt.value = name || ticker;
+          opt.textContent = ticker;
           fragment.appendChild(opt);
         }
         datalist.innerHTML = '';
@@ -2183,6 +2257,9 @@ function tvIntervalToAPI(iv) {
 }
 
 async function triggerPrediction(ticker, timeframeOverride) {
+  // Resolve friendly name to ticker symbol
+  ticker = resolveTicker(ticker);
+
   const tf = timeframeOverride || tvIntervalToAPI(tvInterval);
   const loadingEl = document.getElementById('pred-loading');
   if (loadingEl) loadingEl.classList.remove('hidden');
@@ -2191,10 +2268,10 @@ async function triggerPrediction(ticker, timeframeOverride) {
   navigateTo('predictions');
   reinitTV(ticker);
 
-  // Update search inputs
+  // Update search inputs to display stock name instead of raw ticker
   ['pred-search','global-search'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.value = ticker;
+    if (el) el.value = getStockName(ticker);
   });
 
   try {
@@ -2230,14 +2307,14 @@ function renderPrediction(data, ticker) {
   if (bar) { setTimeout(() => bar.style.width = `${conf}%`, 100); }
   setEl('stat-direction', dir === 'Bullish' ? '📈 Bullish' : dir === 'Bearish' ? '📉 Bearish' : '➡️ Neutral');
   setStyle('stat-direction','color', col);
-  setEl('stat-ticker-label', ticker);
+  setEl('stat-ticker-label', data.stock_name || getStockName(ticker));
   setEl('stat-sentiment', data.sentiment_label || '—');
   setEl('stat-sentiment-score', `Score: ${(data.sentiment_score||0).toFixed(2)}`);
   setEl('stat-price', `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}`);
   setEl('stat-forecast', `Forecast: ${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`);
 
   // Predictions page header
-  setEl('chart-title', data.stock_name ? `${data.stock_name} (${ticker})` : ticker);
+  setEl('chart-title', data.stock_name || getStockName(ticker));
   setEl('chart-price', `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}`);
   setEl('chart-forecast', `${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`);
   const chip = document.getElementById('chart-direction-chip');
@@ -2606,7 +2683,7 @@ async function runBacktest() {
 // PAPER TRADING SIMULATOR
 // ─────────────────────────────────────────────────────────
 async function loadPaperTrading() {
-  const stored = localStorage.getItem('nq_auth');
+  const stored = localStorage.getItem('nq_auth') || sessionStorage.getItem('nq_auth');
   if (!stored) {
     document.getElementById('login-overlay').classList.remove('hidden');
     return;
@@ -2654,15 +2731,16 @@ async function loadPaperTrading() {
       data.positions.forEach(pos => {
         const isProfit = pos.unrealized_pnl >= 0;
         const pnlCol = isProfit ? '#52ffac' : '#ff8080';
+        const stockName = getStockName(pos.ticker);
         posList.insertAdjacentHTML('beforeend', `
           <tr class="border-b" style="border-color:var(--border)">
-            <td class="py-2.5 font-bold" style="color:var(--text)">${pos.ticker}</td>
-            <td class="py-2.5 text-right" style="color:var(--text)">${symbol}${pos.average_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
-            <td class="py-2.5 text-right font-semibold" style="color:var(--text)">${pos.quantity}</td>
-            <td class="py-2.5 text-right" style="color:var(--text)">${symbol}${pos.current_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
-            <td class="py-2.5 text-right font-bold" style="color:${pnlCol}">${isProfit ? '+' : ''}${symbol}${pos.unrealized_pnl.toLocaleString('en-IN', {maximumFractionDigits:2})} (${isProfit ? '+' : ''}${pos.unrealized_pnl_percent.toFixed(1)}%)</td>
+            <td class="py-2.5 pr-4 font-bold text-left" style="color:var(--text)">${stockName}</td>
+            <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${pos.average_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2.5 pr-4 text-right font-semibold" style="color:var(--text)">${pos.quantity}</td>
+            <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${pos.current_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2.5 pr-4 text-right font-bold" style="color:${pnlCol}">${isProfit ? '+' : ''}${symbol}${pos.unrealized_pnl.toLocaleString('en-IN', {maximumFractionDigits:2})} (${isProfit ? '+' : ''}${pos.unrealized_pnl_percent.toFixed(1)}%)</td>
             <td class="py-2.5 text-right">
-              <button onclick="fillPTOrderForm('${pos.ticker}', 'SELL', ${pos.quantity}, ${pos.current_price})" class="px-2.5 py-1 rounded-lg text-3xs font-bold uppercase transition-all" style="background:rgba(255,128,128,0.1);color:#ff8080;border:1px solid rgba(255,128,128,0.2)">
+              <button onclick="fillPTOrderForm('${stockName.replace(/'/g, "\\'")}', 'SELL', ${pos.quantity}, ${pos.current_price})" class="px-2.5 py-1 rounded-lg text-3xs font-bold uppercase transition-all" style="background:rgba(255,128,128,0.1);color:#ff8080;border:1px solid rgba(255,128,128,0.2)">
                 Sell
               </button>
             </td>
@@ -2682,12 +2760,13 @@ async function loadPaperTrading() {
       history.forEach(order => {
         const col = order.direction === 'BUY' ? '#52ffac' : '#ff8080';
         const formattedTime = new Date(order.created_at).toLocaleString('en-IN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+        const stockName = getStockName(order.ticker);
         histList.insertAdjacentHTML('beforeend', `
           <tr class="border-b" style="border-color:var(--border)">
-            <td class="py-2" style="color:var(--text-dim)">${formattedTime}</td>
-            <td class="py-2 font-bold" style="color:var(--text)">${order.ticker}</td>
-            <td class="py-2 font-semibold" style="color:${col}">${order.direction}</td>
-            <td class="py-2 text-right" style="color:var(--text)">${symbol}${order.price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2 pr-4 text-left" style="color:var(--text-dim)">${formattedTime}</td>
+            <td class="py-2 pr-4 font-bold text-left" style="color:var(--text)">${stockName}</td>
+            <td class="py-2 pr-4 font-semibold text-left" style="color:${col}">${order.direction}</td>
+            <td class="py-2 pr-4 text-right" style="color:var(--text)">${symbol}${order.price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
             <td class="py-2 text-right" style="color:var(--text)">${order.quantity}</td>
           </tr>
         `);
@@ -2699,8 +2778,8 @@ async function loadPaperTrading() {
   }
 }
 
-function fillPTOrderForm(ticker, direction, qty, price) {
-  document.getElementById('pt-order-ticker').value = ticker;
+function fillPTOrderForm(stockName, direction, qty, price) {
+  document.getElementById('pt-order-ticker').value = stockName;
   document.getElementById('pt-order-direction').value = direction;
   document.getElementById('pt-order-qty').value = qty;
   document.getElementById('pt-order-price').value = price;
@@ -2710,9 +2789,10 @@ function fillPTOrderForm(ticker, direction, qty, price) {
 
 async function checkPTTickerPrice() {
   const tickerInput = document.getElementById('pt-order-ticker');
-  const ticker = tickerInput.value.trim().toUpperCase();
-  if (!ticker) return;
+  const rawInput = tickerInput.value.trim();
+  if (!rawInput) return;
 
+  const ticker = resolveTicker(rawInput);
   const priceInput = document.getElementById('pt-order-price');
   const adviseEl = document.getElementById('pt-ai-advise');
   
@@ -2732,6 +2812,7 @@ async function checkPTTickerPrice() {
     const confidence = data.confidence_score;
     const col = direction === 'Bullish' ? '#52ffac' : direction === 'Bearish' ? '#ff8080' : 'var(--text-dim)';
     
+    const friendlyName = getStockName(ticker);
     adviseEl.innerHTML = `AI Consensus: <span class="font-bold" style="color:${col}">${direction}</span> with <span class="font-bold" style="color:${col}">${confidence}% confidence</span>. Linear Trend Model suggests a target of ${data.currency_symbol}${data.forecast_price.toFixed(2)}.`;
   } catch (e) {
     priceInput.placeholder = 'Error';
@@ -2742,10 +2823,10 @@ async function checkPTTickerPrice() {
 function updatePTOrderCosts() {
   const qty = parseFloat(document.getElementById('pt-order-qty').value) || 0;
   const price = parseFloat(document.getElementById('pt-order-price').value) || 0;
-  const direction = document.getElementById('pt-order-direction').value;
   
   const estCost = qty * price;
-  const ticker = document.getElementById('pt-order-ticker').value.trim().toUpperCase();
+  const rawInput = document.getElementById('pt-order-ticker').value.trim();
+  const ticker = resolveTicker(rawInput);
   const isIndian = ticker.endsWith('.NS') || ticker.endsWith('.BO');
   const symbol = isIndian ? '₹' : '$';
 
@@ -2753,11 +2834,12 @@ function updatePTOrderCosts() {
 }
 
 async function placeVirtualOrder() {
-  const stored = localStorage.getItem('nq_auth');
+  const stored = localStorage.getItem('nq_auth') || sessionStorage.getItem('nq_auth');
   if (!stored) return;
   const user = JSON.parse(stored);
 
-  const ticker = document.getElementById('pt-order-ticker').value.trim().toUpperCase();
+  const rawInput = document.getElementById('pt-order-ticker').value.trim();
+  const ticker = resolveTicker(rawInput);
   const direction = document.getElementById('pt-order-direction').value;
   const qty = parseFloat(document.getElementById('pt-order-qty').value) || 0;
   const price = parseFloat(document.getElementById('pt-order-price').value) || 0;
@@ -2814,7 +2896,7 @@ async function resetPaperTrading() {
   const confirmed = confirm('Are you sure you want to reset your virtual trading account? This will restore your cash balance and wipe all open positions and trade history.');
   if (!confirmed) return;
 
-  const stored = localStorage.getItem('nq_auth');
+  const stored = localStorage.getItem('nq_auth') || sessionStorage.getItem('nq_auth');
   if (!stored) return;
   const user = JSON.parse(stored);
 
@@ -2834,6 +2916,13 @@ async function resetPaperTrading() {
     alert('Error resetting portfolio: ' + e.message);
   }
 }
+
+// Auto-refresh Paper Trading dashboard every 8 seconds when the user is on the Trade tab
+setInterval(() => {
+  if (currentPage === 'screener') {
+    loadPaperTrading();
+  }
+}, 8000);
 
 // ─────────────────────────────────────────────────────────
 // LIVE TICKER AND INDICES DATA
@@ -3049,11 +3138,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // API health
   checkHealth();
-
-  // Auto-predict on load if authenticated
-  if (isAuthed) {
-    setTimeout(() => triggerPrediction('RELIANCE.NS', '1d'), 600);
-  }
 
   // Load live ticker prices and indices on startup
   loadTickerAndIndices();

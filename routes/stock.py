@@ -383,6 +383,28 @@ async def get_ticker_prices(
     async def fetch_price(ticker):
         try:
             loop = asyncio.get_event_loop()
+            # Attempt fast_info for instantaneous live quotes
+            def get_fast_price():
+                t = yf.Ticker(ticker)
+                last_price = t.fast_info.last_price
+                prev_close = t.fast_info.previous_close
+                if last_price is not None:
+                    p_close = prev_close if prev_close is not None else last_price
+                    change = last_price - p_close
+                    pct_change = (change / p_close) * 100 if p_close != 0 else 0
+                    return {
+                        "price": round(float(last_price), 2),
+                        "change": round(float(change), 2),
+                        "pct_change": round(float(pct_change), 2)
+                    }
+                return None
+
+            res_fast = await loop.run_in_executor(None, get_fast_price)
+            if res_fast is not None:
+                results[ticker] = res_fast
+                return
+
+            # Fallback to history download
             df = await loop.run_in_executor(
                 None,
                 lambda: yf.download(ticker, period="5d", interval="1d", progress=False)
@@ -517,15 +539,26 @@ async def api_get_portfolio(username: str):
             ticker = pos["ticker"]
             try:
                 loop = asyncio.get_event_loop()
-                df = await loop.run_in_executor(
-                    None,
-                    lambda: yf.download(ticker, period="5d", interval="1d", progress=False)
-                )
-                if not df.empty:
-                    import pandas as pd
-                    if isinstance(df.columns, pd.MultiIndex):
-                        df.columns = df.columns.get_level_values(0)
-                    latest_close = float(df.dropna(subset=["Close"])["Close"].iloc[-1])
+                # Attempt fast_info for instantaneous live quotes
+                def get_fast_current():
+                    t = yf.Ticker(ticker)
+                    last_price = t.fast_info.last_price
+                    return float(last_price) if last_price is not None else None
+
+                latest_close = await loop.run_in_executor(None, get_fast_current)
+                if latest_close is None:
+                    # Fallback to history download
+                    df = await loop.run_in_executor(
+                        None,
+                        lambda: yf.download(ticker, period="5d", interval="1d", progress=False)
+                    )
+                    if not df.empty:
+                        import pandas as pd
+                        if isinstance(df.columns, pd.MultiIndex):
+                            df.columns = df.columns.get_level_values(0)
+                        latest_close = float(df.dropna(subset=["Close"])["Close"].iloc[-1])
+                
+                if latest_close is not None:
                     pos["current_price"] = latest_close
                     pos["current_value"] = latest_close * pos["quantity"]
                     pos["unrealized_pnl"] = (latest_close - pos["average_price"]) * pos["quantity"]
