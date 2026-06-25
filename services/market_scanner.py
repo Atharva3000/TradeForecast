@@ -85,7 +85,8 @@ else:
 
 
 def _detect_currency_symbol(ticker: str) -> str:
-    if ticker.endswith(".NS") or ticker.endswith(".BO"):
+    is_indian_index = ticker.startswith("^NSE") or ticker.startswith("^BSE") or ticker.startswith("^CNX") or ticker == "^INDIAVIX"
+    if ticker.endswith(".NS") or ticker.endswith(".BO") or is_indian_index:
         return "₹"
     if "-" in ticker:
         parts = ticker.split("-")

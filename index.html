@@ -1497,6 +1497,22 @@ const BULL_COLOR = '#52ffac';
 const BEAR_COLOR = '#ff5050';
 const NEUT_COLOR = '#9aa5b4';
 
+// Helper to format currency and numbers correctly based on the symbol (en-IN for ₹, en-US for others)
+function formatVal(val, symbol, maxFrac = 2, minFrac = null) {
+  if (val === undefined || val === null || isNaN(val)) {
+    return (minFrac !== null) ? (0).toFixed(minFrac) : '0.00';
+  }
+  const locale = (symbol === '₹') ? 'en-IN' : 'en-US';
+  const opts = { maximumFractionDigits: maxFrac };
+  if (minFrac !== null) {
+    opts.minimumFractionDigits = minFrac;
+  }
+  return val.toLocaleString(locale, opts);
+}
+
+// Global paper portfolio currency (tracks dynamically once portfolio is loaded)
+let paperPortfolioCurrency = '₹';
+
 // TradingView state
 let tvSymbol  = 'RELIANCE.NS';
 let tvInterval = '1d';
@@ -2310,13 +2326,13 @@ function renderPrediction(data, ticker) {
   setEl('stat-ticker-label', data.stock_name || getStockName(ticker));
   setEl('stat-sentiment', data.sentiment_label || '—');
   setEl('stat-sentiment-score', `Score: ${(data.sentiment_score||0).toFixed(2)}`);
-  setEl('stat-price', `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}`);
-  setEl('stat-forecast', `Forecast: ${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`);
+  setEl('stat-price', `${sym}${formatVal(price, sym, 2)}`);
+  setEl('stat-forecast', `Forecast: ${sym}${formatVal(forecast, sym, 2)}`);
 
   // Predictions page header
   setEl('chart-title', data.stock_name || getStockName(ticker));
-  setEl('chart-price', `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}`);
-  setEl('chart-forecast', `${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}`);
+  setEl('chart-price', `${sym}${formatVal(price, sym, 2)}`);
+  setEl('chart-forecast', `${sym}${formatVal(forecast, sym, 2)}`);
   const chip = document.getElementById('chart-direction-chip');
   if (chip) { chip.textContent = dir; chip.className = `${dir==='Bullish'?'chip-bull':dir==='Bearish'?'chip-bear':'chip-hold'} px-2 py-0.5 rounded text-xs`; }
 
@@ -2338,11 +2354,11 @@ function renderPrediction(data, ticker) {
         <div class="grid grid-cols-2 gap-3">
           <div class="rounded-xl p-3" style="background:var(--bg-raised)">
             <div class="text-xs font-mono mb-1" style="color:var(--text-dim)">Current Price</div>
-            <div class="text-lg font-black" style="color:var(--text)">${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+            <div class="text-lg font-black" style="color:var(--text)">${sym}${formatVal(price, sym, 2)}</div>
           </div>
           <div class="rounded-xl p-3" style="background:var(--bg-raised)">
             <div class="text-xs font-mono mb-1" style="color:var(--text-dim)">AI Forecast</div>
-            <div class="text-lg font-black" style="color:#00e290">${sym}${(forecast||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</div>
+            <div class="text-lg font-black" style="color:#00e290">${sym}${formatVal(forecast, sym, 2)}</div>
           </div>
         </div>
         <div class="w-full h-1 rounded-full overflow-hidden" style="background:var(--bg-raised)">
@@ -2402,7 +2418,7 @@ function renderPrediction(data, ticker) {
   const idxMap = { '^NSEI': 'idx-nsei', '^BSESN': 'idx-bsesn', '^NSEBANK': 'idx-nsebank' };
   if (idxMap[ticker]) {
     const pfx = idxMap[ticker];
-    setEl(`${pfx}-price`, `${sym}${price.toLocaleString('en-IN',{maximumFractionDigits:0})}`);
+    setEl(`${pfx}-price`, `${sym}${formatVal(price, sym, 0)}`);
     const chgEl = document.getElementById(`${pfx}-chg`);
     if (chgEl) { chgEl.textContent = dir; chgEl.style.color = col; }
   }
@@ -2472,7 +2488,7 @@ function renderIndicators(data) {
         }
         return `<tr class="border-b" style="border-color:var(--border)">
           <td class="py-3 font-semibold text-xs" style="color:#00e290">${level}</td>
-          <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${val.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${formatVal(val, sym, 2, 2)}</td>
           <td class="py-3 text-left pl-4 text-xs font-mono">${status}</td>
         </tr>`;
       }).join('');
@@ -2499,7 +2515,7 @@ function renderIndicators(data) {
         }
         return `<tr class="border-b" style="border-color:var(--border)">
           <td class="py-3 font-semibold text-xs" style="color:var(--text)">${uppercaseName}</td>
-          <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${val.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+          <td class="py-3 text-right font-mono text-xs" style="color:var(--text)">${formatVal(val, sym, 2, 2)}</td>
           <td class="py-3 text-left pl-4 text-xs font-bold font-mono" style="color:${typeColor}">${typeText}</td>
         </tr>`;
       }).join('');
@@ -2600,7 +2616,7 @@ async function triggerCryptoPrediction(ticker) {
     const cardId = ticker.replace('.NS','').replace('.BO','').replace(/\^/,'').replace(/-/,'').toLowerCase();
     const pe = document.getElementById(`${cardId}-price`);
     const de = document.getElementById(`${cardId}-dir`);
-    if (pe) pe.textContent = `${sym}${data.current_price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+    if (pe) pe.textContent = `${sym}${formatVal(data.current_price, sym, 2)}`;
     if (de) { de.textContent = dir; de.style.color = col; }
   } catch(e) {}
 }
@@ -2759,10 +2775,10 @@ async function loadPaperTrading() {
         posList.insertAdjacentHTML('beforeend', `
           <tr class="border-b" style="border-color:var(--border)">
             <td class="py-2.5 pr-4 font-bold text-left" style="color:var(--text)">${stockName}</td>
-            <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${pos.average_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${formatVal(pos.average_price, symbol, 2)}</td>
             <td class="py-2.5 pr-4 text-right font-semibold" style="color:var(--text)">${pos.quantity}</td>
-            <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${pos.current_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
-            <td class="py-2.5 pr-4 text-right font-bold" style="color:${pnlCol}">${isProfit ? '+' : ''}${symbol}${pos.unrealized_pnl.toLocaleString('en-IN', {maximumFractionDigits:2})} (${isProfit ? '+' : ''}${pos.unrealized_pnl_percent.toFixed(1)}%)</td>
+            <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${formatVal(pos.current_price, symbol, 2)}</td>
+            <td class="py-2.5 pr-4 text-right font-bold" style="color:${pnlCol}">${isProfit ? '+' : ''}${symbol}${formatVal(pos.unrealized_pnl, symbol, 2)} (${isProfit ? '+' : ''}${pos.unrealized_pnl_percent.toFixed(1)}%)</td>
             <td class="py-2.5 text-right">
               <button onclick="fillPTOrderForm('${stockName.replace(/'/g, "\\'")}', 'SELL', ${pos.quantity}, ${pos.current_price})" class="px-2.5 py-1 rounded-lg text-3xs font-bold uppercase transition-all" style="background:rgba(255,128,128,0.1);color:#ff8080;border:1px solid rgba(255,128,128,0.2)">
                 Sell
@@ -2790,7 +2806,7 @@ async function loadPaperTrading() {
             <td class="py-2 pr-4 text-left" style="color:var(--text-dim)">${formattedTime}</td>
             <td class="py-2 pr-4 font-bold text-left" style="color:var(--text)">${stockName}</td>
             <td class="py-2 pr-4 font-semibold text-left" style="color:${col}">${order.direction}</td>
-            <td class="py-2 pr-4 text-right" style="color:var(--text)">${symbol}${order.price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2 pr-4 text-right" style="color:var(--text)">${symbol}${formatVal(order.price, symbol, 2)}</td>
             <td class="py-2 text-right" style="color:var(--text)">${order.quantity}</td>
           </tr>
         `);
@@ -2846,7 +2862,7 @@ async function checkPTTickerPrice() {
     const col = direction === 'Bullish' ? '#52ffac' : direction === 'Bearish' ? '#ff8080' : 'var(--text-dim)';
     
     const friendlyName = getStockName(ticker);
-    adviseEl.innerHTML = `AI Consensus: <span class="font-bold" style="color:${col}">${direction}</span> with <span class="font-bold" style="color:${col}">${confidence}% confidence</span>. Linear Trend Model suggests a target of ${data.currency_symbol}${data.forecast_price.toFixed(2)}.`;
+    adviseEl.innerHTML = `AI Consensus: <span class="font-bold" style="color:${col}">${direction}</span> with <span class="font-bold" style="color:${col}">${confidence}% confidence</span>. Linear Trend Model suggests a target of ${data.currency_symbol}${formatVal(data.forecast_price, data.currency_symbol, 2)}.`;
   } catch (e) {
     priceInput.placeholder = 'Error';
     adviseEl.textContent = 'Could not fetch price/predictions for ticker. Ensure it is valid.';
@@ -2858,12 +2874,9 @@ function updatePTOrderCosts() {
   const price = parseFloat(document.getElementById('pt-order-price').value) || 0;
   
   const estCost = qty * price;
-  const rawInput = document.getElementById('pt-order-ticker').value.trim();
-  const ticker = resolveTicker(rawInput);
-  const isIndian = ticker.endsWith('.NS') || ticker.endsWith('.BO') || ticker.startsWith('^NSE') || ticker.startsWith('^BSE') || ticker.startsWith('^CNX') || ticker === '^INDIAVIX';
-  const symbol = isIndian ? '₹' : '$';
+  const symbol = paperPortfolioCurrency || '₹';
 
-  document.getElementById('pt-order-est-cost').textContent = `${symbol}${estCost.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
+  document.getElementById('pt-order-est-cost').textContent = `${symbol}${formatVal(estCost, symbol, 2)}`;
 }
 
 async function placeVirtualOrder() {
@@ -2977,7 +2990,7 @@ async function loadTickerAndIndices() {
       const val = data[idx.ticker];
       if (val && val.price !== null) {
         const pEl = document.getElementById(`${idx.prefix}-price`);
-        if (pEl) pEl.textContent = `${idx.symbol}${val.price.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
+        if (pEl) pEl.textContent = `${idx.symbol}${formatVal(val.price, idx.symbol, 0)}`;
         const chgEl = document.getElementById(`${idx.prefix}-chg`);
         if (chgEl) {
           const color = val.change >= 0 ? '#00e290' : '#ff5050';
@@ -3140,7 +3153,7 @@ async function preloadSectorWatchlist() {
         const dir = data.prediction_direction;
         const col = dir === 'Bullish' ? BULL_COLOR : dir === 'Bearish' ? BEAR_COLOR : NEUT_COLOR;
         
-        if (pe) pe.textContent = `${sym}${data.current_price.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
+        if (pe) pe.textContent = `${sym}${formatVal(data.current_price, sym, 2)}`;
         if (de) { 
           de.textContent = dir; 
           de.style.color = col; 
