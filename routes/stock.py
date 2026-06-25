@@ -526,8 +526,20 @@ class PaperOrderRequest(BaseModel):
 class PaperResetRequest(BaseModel):
     username: str
 
+class SetCashRequest(BaseModel):
+    username: str
+    cash_balance: float
+
 import yfinance as yf
-from services.paper_db import get_portfolio, execute_order, reset_portfolio, get_order_history, sync_portfolio
+from services.paper_db import get_portfolio, execute_order, reset_portfolio, get_order_history, sync_portfolio, set_portfolio_cash
+
+@router.post("/api/paper/set-cash")
+async def api_set_cash(req: SetCashRequest):
+    try:
+        res = set_portfolio_cash(req.username, req.cash_balance)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @router.get("/api/paper/portfolio")
 async def api_get_portfolio(username: str):

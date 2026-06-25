@@ -133,12 +133,12 @@ def execute_order(username: str, ticker: str, direction: str, quantity: float, p
                 )
                 
         elif direction == "SELL":
-            # Check position
-            if current_qty < quantity:
+            # Check position with a tiny float margin to avoid precision issues
+            if current_qty - quantity < -1e-5:
                 raise ValueError(f"Insufficient shares. You hold {current_qty} of {ticker}, but tried to sell {quantity}.")
                 
             new_cash = cash_balance + total_value
-            new_qty = current_qty - quantity
+            new_qty = max(0.0, current_qty - quantity)
             
             # Update cash
             cursor.execute(
@@ -308,5 +308,32 @@ def sync_portfolio(username: str, cash_balance: float, currency: str, positions:
         conn.rollback()
         logger.error("Error syncing portfolio for %s: %s", username, e)
         raise e
+    finally:
+        conn.close()
+
+def set_portfolio_cash(username: str, cash: float) -> dict:
+    """
+    Directly update or set the user's paper trading cash balance (no restrictions).
+    """
+    username = username.strip().lower()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT currency FROM paper_portfolio WHERE username = ?", (username,))
+        row = cursor.fetchone()
+        currency = row["currency"] if row else "₹"
+        
+        if not row:
+            cursor.execute(
+                "INSERT INTO paper_portfolio (username, cash_balance, currency) VALUES (?, ?, ?)",
+                (username, cash, currency)
+            )
+        else:
+            cursor.execute(
+                "UPDATE paper_portfolio SET cash_balance = ? WHERE username = ?",
+                (cash, username)
+            )
+        conn.commit()
+        return {"status": "success", "message": f"Successfully updated cash balance to {currency}{cash:,.2f}."}
     finally:
         conn.close()

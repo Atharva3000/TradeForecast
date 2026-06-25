@@ -1070,6 +1070,9 @@
               <p class="text-sm mt-1" style="color:var(--text-dim)">Risk-free virtual stock trading simulator with real-time price feeds.</p>
             </div>
             <div class="flex gap-3 flex-wrap fade-up fade-up-d1">
+              <button onclick="setCustomCash()" class="glass-card px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold border transition-all" style="color:#00e290;border-color:rgba(0,226,144,0.3);background:transparent;">
+                <span class="material-symbols-outlined text-sm">payments</span>Set Cash
+              </button>
               <button onclick="resetPaperTrading()" class="glass-card px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold border transition-all" style="color:#ff8080;border-color:rgba(255,128,128,0.3);background:transparent;">
                 <span class="material-symbols-outlined text-sm">restart_alt</span>Reset Account
               </button>
@@ -1801,11 +1804,29 @@ document.addEventListener('DOMContentLoaded', () => {
 let STOCK_UNIVERSE = {};
 let NAME_TO_TICKER = {};
 
+const FALLBACK_NAME_TO_TICKER = {
+  'NIFTY 50': '^NSEI',
+  'SENSEX': '^BSESN',
+  'BANK NIFTY': '^NSEBANK',
+  'RELIANCE': 'RELIANCE.NS',
+  'TCS': 'TCS.NS',
+  'HDFC BANK': 'HDFCBANK.NS',
+  'INFOSYS': 'INFY.NS',
+  'ICICI BANK': 'ICICIBANK.NS',
+  'SBI': 'SBIN.NS',
+  'BAJAJ FINANCE': 'BAJFINANCE.NS',
+  'WIPRO': 'WIPRO.NS',
+  'AXIS BANK': 'AXISBANK.NS'
+};
+
 function resolveTicker(inputVal) {
   if (!inputVal) return '';
   const upperVal = inputVal.trim().toUpperCase();
   if (NAME_TO_TICKER[upperVal]) {
     return NAME_TO_TICKER[upperVal];
+  }
+  if (FALLBACK_NAME_TO_TICKER[upperVal]) {
+    return FALLBACK_NAME_TO_TICKER[upperVal];
   }
   if (STOCK_UNIVERSE[upperVal]) {
     return upperVal;
@@ -2714,7 +2735,7 @@ async function loadPaperTrading() {
     if (localBackup) {
       try {
         const backupData = JSON.parse(localBackup);
-        if (backupData && backupData.positions && (backupData.positions.length > 0 || (backupData.history && backupData.history.length > 0))) {
+        if (backupData && (backupData.cash_balance !== undefined || (backupData.positions && backupData.positions.length > 0) || (backupData.history && backupData.history.length > 0))) {
           await fetch(`${API_BASE}/api/paper/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2814,13 +2835,37 @@ async function loadPaperTrading() {
     }
 
     // Save snapshot to local backup for persistent state recovery
-    const backupObj = {
-      cash_balance: data.cash_balance,
-      currency: symbol,
-      positions: data.positions,
-      history: history || []
-    };
-    localStorage.setItem(localBackupKey, JSON.stringify(backupObj));
+    const existingBackupStr = localStorage.getItem(localBackupKey);
+    let shouldSave = true;
+    if (existingBackupStr) {
+      try {
+        const existing = JSON.parse(existingBackupStr);
+        const existingHasData = (existing.positions && existing.positions.length > 0) || 
+                                (existing.history && existing.history.length > 0) || 
+                                (existing.cash_balance && existing.cash_balance !== 1000000.0);
+                                
+        const newDataHasData = (data.positions && data.positions.length > 0) || 
+                              (history && history.length > 0) || 
+                              (data.cash_balance && data.cash_balance !== 1000000.0);
+                              
+        if (existingHasData && !newDataHasData) {
+          shouldSave = false;
+          console.warn("Prevented overwriting local portfolio backup with empty database state.");
+        }
+      } catch (e) {
+        console.error("Failed to parse existing portfolio backup:", e);
+      }
+    }
+
+    if (shouldSave) {
+      const backupObj = {
+        cash_balance: data.cash_balance,
+        currency: symbol,
+        positions: data.positions,
+        history: history || []
+      };
+      localStorage.setItem(localBackupKey, JSON.stringify(backupObj));
+    }
 
   } catch (e) {
     console.error('Error loading paper trading portfolio:', e);
@@ -2961,6 +3006,39 @@ async function resetPaperTrading() {
     }
   } catch (e) {
     alert('Error resetting portfolio: ' + e.message);
+  }
+}
+
+async function setCustomCash() {
+  const stored = localStorage.getItem('nq_auth') || sessionStorage.getItem('nq_auth');
+  if (!stored) return;
+  const user = JSON.parse(stored);
+  
+  const currentSymbol = paperPortfolioCurrency || '₹';
+  const amountStr = prompt(`Enter custom virtual cash balance (in ${currentSymbol}):`);
+  if (amountStr === null) return; // Cancelled
+  const amount = parseFloat(amountStr.replace(/,/g, '').trim());
+  if (isNaN(amount) || amount < 0) {
+    alert('Please enter a valid positive number.');
+    return;
+  }
+  
+  try {
+    const res = await fetch(`${API_BASE}/api/paper/set-cash`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user.username, cash_balance: amount })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(data.message || 'Cash balance updated successfully.');
+      // Force sync update to local storage
+      await loadPaperTrading();
+    } else {
+      alert(data.detail || 'Failed to update cash balance.');
+    }
+  } catch (e) {
+    alert('Error setting custom cash: ' + e.message);
   }
 }
 
