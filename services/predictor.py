@@ -218,6 +218,12 @@ def run_prediction(df: pd.DataFrame, model_type: str = "Ridge Regression", lag_p
     X_test  = test_set[feature_cols].values
     y_test  = test_set["target"].values
 
+    # Apply StandardScaler for feature scaling (prevents numerical instability and negative target price anomalies)
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled  = scaler.transform(X_test)
+
     # --- Model Selection ----------------------------------------------------
     if model_type == "XGBoost" or model_type == "XGBoost Regressor":
         if XGB_AVAILABLE:
@@ -229,9 +235,9 @@ def run_prediction(df: pd.DataFrame, model_type: str = "Ridge Regression", lag_p
     else:
         model = Ridge(alpha=10.0)
 
-    model.fit(X_train, y_train)
+    model.fit(X_train_scaled, y_train)
 
-    r2 = model.score(X_test, y_test)
+    r2 = model.score(X_test_scaled, y_test)
 
     # --- Forecast next period -----------------------------------------------
     X_forecast = forecast_row[feature_cols].values.reshape(1, -1)
@@ -242,11 +248,17 @@ def run_prediction(df: pd.DataFrame, model_type: str = "Ridge Regression", lag_p
             "for the selected timeframe and indicator windows."
         )
 
-    next_day_forecast = float(model.predict(X_forecast)[0])
+    X_forecast_scaled = scaler.transform(X_forecast)
+    next_day_forecast = float(model.predict(X_forecast_scaled)[0])
+
+    # Safety boundary clip (circuit breaker logic to prevent negative/unrealistic forecasts)
+    current_close = float(latest_indicators["close"])
+    next_day_forecast = max(current_close * 0.5, min(current_close * 1.5, next_day_forecast))
 
     # Predict for the entire historical training set
     all_features = train_df[feature_cols].values
-    all_predictions = model.predict(all_features)
+    all_features_scaled = scaler.transform(all_features)
+    all_predictions = model.predict(all_features_scaled)
 
     # --- Build historical_vs_predicted array (full history) -----------------
     historical_vs_predicted: list[dict] = []
@@ -337,6 +349,10 @@ def get_ml_predictions(df: pd.DataFrame, model_type: str = "Ridge Regression", l
     X_train = df_feat.loc[train_mask, feature_cols].values
     y_train = df_feat.loc[train_mask, "target"].values
 
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+
     if model_type == "XGBoost" or model_type == "XGBoost Regressor":
         if XGB_AVAILABLE:
             model = xgb.XGBRegressor(n_estimators=100, max_depth=3, learning_rate=0.1, random_state=42)
@@ -347,12 +363,18 @@ def get_ml_predictions(df: pd.DataFrame, model_type: str = "Ridge Regression", l
     else:
         model = Ridge(alpha=10.0)
 
-    model.fit(X_train, y_train)
+    model.fit(X_train_scaled, y_train)
 
     # Predict for all rows where features are valid
     predictions = pd.Series(np.nan, index=df.index)
     X_pred = df_feat.loc[feature_mask, feature_cols].values
-    predictions.loc[feature_mask] = model.predict(X_pred)
+    X_pred_scaled = scaler.transform(X_pred)
+    raw_predictions = model.predict(X_pred_scaled)
+    
+    # Clip predictions to prevent negative or infinite values
+    close_prices = df_feat.loc[feature_mask, "close"].values
+    clipped_predictions = np.clip(raw_predictions, close_prices * 0.5, close_prices * 1.5)
+    predictions.loc[feature_mask] = clipped_predictions
 
     return predictions
 

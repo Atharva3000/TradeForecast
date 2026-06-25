@@ -155,8 +155,9 @@ async def get_prediction(
             currency_code = quote
             currency_symbol = SYMBOL_MAP.get(quote, quote)
     else:
-        # Standard Stocks format (Indian vs US/Global)
-        is_indian_market = ticker.endswith(".NS") or ticker.endswith(".BO")
+        # Standard Stocks format (Indian vs US/Global, including Indian index symbols)
+        is_indian_index = ticker.startswith("^NSE") or ticker.startswith("^BSE") or ticker.startswith("^CNX") or ticker == "^INDIAVIX"
+        is_indian_market = ticker.endswith(".NS") or ticker.endswith(".BO") or is_indian_index
         currency_symbol = "₹" if is_indian_market else "$"
         currency_code   = "INR" if is_indian_market else "USD"
 

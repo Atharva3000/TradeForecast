@@ -2860,7 +2860,7 @@ function updatePTOrderCosts() {
   const estCost = qty * price;
   const rawInput = document.getElementById('pt-order-ticker').value.trim();
   const ticker = resolveTicker(rawInput);
-  const isIndian = ticker.endsWith('.NS') || ticker.endsWith('.BO');
+  const isIndian = ticker.endsWith('.NS') || ticker.endsWith('.BO') || ticker.startsWith('^NSE') || ticker.startsWith('^BSE') || ticker.startsWith('^CNX') || ticker === '^INDIAVIX';
   const symbol = isIndian ? '₹' : '$';
 
   document.getElementById('pt-order-est-cost').textContent = `${symbol}${estCost.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
