@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import tempfile
 
 # Check if running on Vercel or in a read-only environment.
 # Vercel filesystem is read-only except for /tmp.
@@ -21,7 +22,7 @@ else:
             os.remove(_test_path)
             DB_PATH = _local_db_path
         except (IOError, OSError, PermissionError):
-            DB_PATH = "/tmp/users.db"
+            DB_PATH = os.path.join(tempfile.gettempdir(), "users.db")
 
 def get_db_connection():
     """Get a connection to the SQLite database with row factory enabled."""
@@ -82,4 +83,26 @@ def init_db():
     """)
     
     conn.commit()
+    
+    # Seed default users if the users table is empty
+    try:
+        cursor.execute("SELECT COUNT(*) FROM users")
+        if cursor.fetchone()[0] == 0:
+            default_users = [
+                ("testuser", "pbkdf2:sha256:100000$3292647005002ffd66d52b15a3c04262$9955019c0861d617d959a4354a4fc83ad4dac7910fa11f11c585bb05685ff439", "Updated Test User", "updated@example.com", "Professional", 250000.0, "India"),
+                ("atharva", "pbkdf2:sha256:100000$128459269bf80fc995832a3835cee7be$dbfff60ea0210af874893fc0d0f7af6da13c5922293e0d3add12c036f96ccb44", "Atharva", "atharvapagrut@gmail.com", "Beginner", 10000.0, "India"),
+                ("tester", "pbkdf2:sha256:100000$3df83dfdf9109a0057b8a0ff5b6c6ad3$2312797f26f27687ecbcd2d9561fcf6a6bf52b46f6799d1539bce1a84c121388", "Test User", "tester@example.com", "Beginner", 1000000.0, "IN")
+            ]
+            cursor.executemany(
+                """
+                INSERT INTO users (username, password_hash, name, email, trading_experience, investment_capital, country)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                default_users
+            )
+            conn.commit()
+    except Exception as e:
+        import sys
+        print(f"Error seeding default users: {e}", file=sys.stderr)
+        
     conn.close()
