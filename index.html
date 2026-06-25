@@ -1953,7 +1953,7 @@ function navigateTo(pageId) {
   closeMobileNav();
   target.scrollTop = 0;
   // Init TV chart when Predictions page is shown
-  if (pageId === 'predictions' && !lwChart) reinitTV(tvSymbol);
+  if (pageId === 'predictions' && !lwChart) triggerPrediction(tvSymbol);
   // Fetch paper trading details when entering the Trade tab
   if (pageId === 'screener') loadPaperTrading();
 }
@@ -2311,8 +2311,11 @@ async function triggerPrediction(ticker, timeframeOverride) {
     if (el) el.value = getStockName(ticker);
   });
 
+  const modelSelect = document.getElementById('model-select');
+  const model = modelSelect ? modelSelect.value : 'linear';
+
   try {
-    const res = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=${tf}`);
+    const res = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=${tf}&model=${model}`);
     if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
     const data = await res.json();
     renderPrediction(data, ticker);
