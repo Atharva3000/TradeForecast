@@ -44,5 +44,38 @@ def init_db():
     );
     """)
     
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS paper_portfolio (
+        username TEXT PRIMARY KEY,
+        cash_balance REAL NOT NULL DEFAULT 1000000.0,
+        currency TEXT NOT NULL DEFAULT '₹'
+    );
+    """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS paper_positions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        ticker TEXT NOT NULL,
+        average_price REAL NOT NULL,
+        quantity REAL NOT NULL,
+        UNIQUE(username, ticker)
+    );
+    """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS paper_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        ticker TEXT NOT NULL,
+        direction TEXT NOT NULL,
+        order_type TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        price REAL NOT NULL,
+        status TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """)
+    
     conn.commit()
     conn.close()

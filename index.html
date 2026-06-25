@@ -1050,33 +1050,218 @@
         </div>
       </section>
 
-      <!-- ══ PAGE 4: SCREENER ══ -->
+      <!-- ══ PAGE 4: PAPER TRADING ══ -->
       <section id="page-screener" class="page h-full scrollable">
         <div class="page-hero shrink-0">
           <div class="flex flex-wrap items-end justify-between gap-4 pb-5">
             <div class="fade-up">
-              <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">Market Scanner</h1>
-              <p class="text-sm mt-1" style="color:var(--text-dim)">AI-powered multi-factor screener across NSE, BSE, F&amp;O &amp; mid-caps.</p>
+              <h1 class="text-2xl md:text-3xl font-black tracking-tight" style="color:var(--text)">Paper Trading</h1>
+              <p class="text-sm mt-1" style="color:var(--text-dim)">Risk-free virtual stock trading simulator with real-time price feeds.</p>
             </div>
             <div class="flex gap-3 flex-wrap fade-up fade-up-d1">
-              <button onclick="loadScanResults()" class="glass-card px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold border transition-all" style="color:#00e290;border-color:rgba(0,226,144,0.3)">
-                <span class="material-symbols-outlined text-sm">refresh</span>Load Scan Data
+              <button onclick="resetPaperTrading()" class="glass-card px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold border transition-all" style="color:#ff8080;border-color:rgba(255,128,128,0.3);background:transparent;">
+                <span class="material-symbols-outlined text-sm">restart_alt</span>Reset Account
               </button>
-              <button onclick="triggerMarketScan()" class="cyber-btn px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold">
-                <span class="material-symbols-outlined text-sm">radar</span>Run New Scan
+              <button onclick="loadPaperTrading()" class="cyber-btn px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-mono font-semibold">
+                <span class="material-symbols-outlined text-sm">refresh</span>Refresh Portfolio
               </button>
             </div>
           </div>
         </div>
-        <div class="p-5">
-          <div id="scan-loading" class="hidden text-center py-16" style="color:var(--text-dim)">
-            <div class="spinner mx-auto mb-3"></div>
-            <div class="text-xs font-mono">Scanning markets... this may take a few minutes</div>
+
+        <div class="px-5 pb-5">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 fade-up">
+            <!-- Card 1: Cash Balance -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between" style="border-left: 3px solid #00e290">
+              <span class="text-xs font-mono uppercase tracking-wider" style="color:var(--text-dim)">Virtual Cash</span>
+              <div class="text-xl md:text-2xl font-black mt-2" id="pt-cash-balance" style="color:var(--text)">₹—</div>
+            </div>
+            <!-- Card 2: Portfolio Value -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between" style="border-left: 3px solid #38bdf8">
+              <span class="text-xs font-mono uppercase tracking-wider" style="color:var(--text-dim)">Portfolio Value</span>
+              <div class="text-xl md:text-2xl font-black mt-2" id="pt-portfolio-value" style="color:var(--text)">₹—</div>
+            </div>
+            <!-- Card 3: Unrealized P&L -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between" id="pt-pnl-card" style="border-left: 3px solid var(--border)">
+              <span class="text-xs font-mono uppercase tracking-wider" style="color:var(--text-dim)">Unrealized P&L</span>
+              <div class="text-xl md:text-2xl font-black mt-2" id="pt-unrealized-pnl">₹—</div>
+            </div>
+            <!-- Card 4: Stats -->
+            <div class="glass-card rounded-2xl p-4 flex flex-col justify-between" style="border-left: 3px solid #eab308">
+              <span class="text-xs font-mono uppercase tracking-wider" style="color:var(--text-dim)">Sharpe / Win Rate</span>
+              <div class="text-sm font-mono mt-2" style="color:var(--text)">
+                Sharpe: <span id="pt-sharpe-ratio" class="font-bold">0.00</span><br>
+                Win Rate: <span id="pt-win-rate" class="font-bold">0.0%</span>
+              </div>
+            </div>
           </div>
-          <div id="screener-content">
-            <div class="glass-card rounded-2xl p-16 text-center" style="color:var(--text-dim)">
-              <span class="material-symbols-outlined text-5xl" style="color:rgba(0,226,144,0.2)">radar</span>
-              <p class="text-sm font-mono mt-4">Click "Load Scan Data" to view existing results or "Run New Scan" to scan live.</p>
+        </div>
+
+        <div class="p-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <!-- Left Column -->
+          <div class="lg:col-span-7 space-y-5">
+            <!-- Order Pad -->
+            <div class="glass-card rounded-2xl p-5 fade-up">
+              <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+                <span class="material-symbols-outlined" style="color:#00e290">payments</span>New Virtual Order
+              </h3>
+              
+              <div class="space-y-4">
+                <div class="relative">
+                  <label class="block text-xs font-mono uppercase mb-1.5" style="color:var(--text-dim)">Stock Ticker</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="pt-order-ticker" list="stock-suggestions" placeholder="Search Ticker (e.g. RELIANCE.NS, AAPL)" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm font-mono uppercase" style="background:var(--card-bg-light);color:var(--text);border:1px solid var(--border)">
+                    <button onclick="checkPTTickerPrice()" class="glass-card px-4 py-2 rounded-xl text-xs font-mono font-semibold border transition-all text-nowrap" style="color:#00e290;border-color:rgba(0,226,144,0.3)">
+                      Quote Price
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-mono uppercase mb-1.5" style="color:var(--text-dim)">Transaction</label>
+                    <select id="pt-order-direction" onchange="updatePTOrderCosts()" class="cyber-input w-full px-3 py-2.5 rounded-xl text-xs font-mono" style="background:var(--card-bg-light);color:var(--text);border:1px solid var(--border)">
+                      <option value="BUY">BUY (Go Long)</option>
+                      <option value="SELL">SELL (Close Position)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-mono uppercase mb-1.5" style="color:var(--text-dim)">Order Type</label>
+                    <select id="pt-order-type" class="cyber-input w-full px-3 py-2.5 rounded-xl text-xs font-mono" style="background:var(--card-bg-light);color:var(--text);border:1px solid var(--border)">
+                      <option value="Market">Market Order</option>
+                      <option value="Limit">Limit Order</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-mono uppercase mb-1.5" style="color:var(--text-dim)">Quantity</label>
+                    <input type="number" id="pt-order-qty" min="1" step="1" value="10" oninput="updatePTOrderCosts()" class="cyber-input w-full px-3 py-2.5 rounded-xl text-xs font-mono" style="background:var(--card-bg-light);color:var(--text);border:1px solid var(--border)">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-mono uppercase mb-1.5" style="color:var(--text-dim)">Execution Price</label>
+                    <input type="number" id="pt-order-price" min="0.01" step="0.01" placeholder="Fetching..." oninput="updatePTOrderCosts()" class="cyber-input w-full px-3 py-2.5 rounded-xl text-xs font-mono" style="background:var(--card-bg-light);color:var(--text);border:1px solid var(--border)">
+                  </div>
+                </div>
+
+                <div class="glass-card p-3.5 rounded-xl space-y-2.5" style="background:rgba(255,255,255,0.01)">
+                  <div class="flex justify-between text-xs font-mono" style="color:var(--text-dim)">
+                    <span>Estimated Cost:</span>
+                    <span id="pt-order-est-cost" class="font-bold" style="color:var(--text)">₹0.00</span>
+                  </div>
+                  <div class="flex items-start gap-2 border-t pt-2.5" style="border-color:var(--border)">
+                    <span class="material-symbols-outlined text-sm mt-0.5" style="color:#00e290">psychology</span>
+                    <div class="text-2xs font-mono" id="pt-ai-advise" style="color:var(--text-dim)">
+                      Enter a ticker and click <span style="color:#00e290">Quote Price</span> to fetch live model predictions.
+                    </div>
+                  </div>
+                </div>
+
+                <button onclick="placeVirtualOrder()" class="cyber-btn w-full py-3 rounded-xl text-xs font-mono font-bold flex items-center justify-center gap-2">
+                  <span class="material-symbols-outlined text-sm">shopping_cart</span>Execute Virtual Transaction
+                </button>
+                <div id="pt-order-status" class="hidden text-center text-xs font-mono py-1"></div>
+              </div>
+            </div>
+
+            <!-- Active Positions -->
+            <div class="glass-card rounded-2xl p-5 fade-up">
+              <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+                <span class="material-symbols-outlined" style="color:#38bdf8">workfolder</span>Open Positions
+              </h3>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse font-mono text-xs">
+                  <thead>
+                    <tr class="border-b" style="border-color:var(--border);color:var(--text-dim)">
+                      <th class="pb-2 font-semibold">Symbol</th>
+                      <th class="pb-2 font-semibold text-right">Avg Cost</th>
+                      <th class="pb-2 font-semibold text-right">Qty</th>
+                      <th class="pb-2 font-semibold text-right">Current</th>
+                      <th class="pb-2 font-semibold text-right">PnL</th>
+                      <th class="pb-2 font-semibold text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pt-positions-list">
+                    <tr>
+                      <td colspan="6" class="text-center py-6" style="color:var(--text-dim)">No active positions. Buy a stock to get started!</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="lg:col-span-5 space-y-5">
+            <!-- Analytics -->
+            <div class="glass-card rounded-2xl p-5 fade-up">
+              <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+                <span class="material-symbols-outlined" style="color:#eab308">insights</span>Performance Analytics
+              </h3>
+              
+              <div class="flex flex-col items-center justify-center p-3 glass-card rounded-xl mb-4" style="background:rgba(255,255,255,0.01)">
+                <div class="text-2xs font-mono text-left w-full mb-1.5" style="color:var(--text-dim)">Estimated Equity Curve (Last 10 trades)</div>
+                <svg viewBox="0 0 400 120" class="w-full h-24" id="pt-equity-chart">
+                  <line x1="0" y1="20" x2="400" y2="20" stroke="var(--border)" stroke-dasharray="2,2" stroke-width="0.5" />
+                  <line x1="0" y1="60" x2="400" y2="60" stroke="var(--border)" stroke-dasharray="2,2" stroke-width="0.5" />
+                  <line x1="0" y1="100" x2="400" y2="100" stroke="var(--border)" stroke-dasharray="2,2" stroke-width="0.5" />
+                  
+                  <path d="M 0 60 L 50 60 L 100 58 L 150 64 L 200 54 L 250 56 L 300 48 L 350 42 L 400 36 L 400 120 L 0 120 Z" fill="url(#pt-grad-green)" opacity="0.1" />
+                  <path d="M 0 60 L 50 60 L 100 58 L 150 64 L 200 54 L 250 56 L 300 48 L 350 42 L 400 36" fill="none" stroke="#00e290" stroke-width="2" />
+                  
+                  <defs>
+                    <linearGradient id="pt-grad-green" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#00e290" />
+                      <stop offset="100%" stop-color="transparent" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div class="p-2.5 glass-card rounded-xl flex justify-between items-center">
+                  <span style="color:var(--text-dim)">Max DD:</span>
+                  <span class="font-bold" style="color:#ff8080" id="pt-metrics-drawdown">3.4%</span>
+                </div>
+                <div class="p-2.5 glass-card rounded-xl flex justify-between items-center">
+                  <span style="color:var(--text-dim)">Profit Factor:</span>
+                  <span class="font-bold" style="color:#00e290">1.82</span>
+                </div>
+                <div class="p-2.5 glass-card rounded-xl flex justify-between items-center">
+                  <span style="color:var(--text-dim)">Avg Hold Time:</span>
+                  <span class="font-bold" style="color:var(--text)">4.2 days</span>
+                </div>
+                <div class="p-2.5 glass-card rounded-xl flex justify-between items-center">
+                  <span style="color:var(--text-dim)">Trading Style:</span>
+                  <span class="font-bold" id="pt-metrics-style" style="color:#38bdf8">Swing</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="glass-card rounded-2xl p-5 fade-up">
+              <h3 class="font-bold text-sm mb-4 flex items-center gap-2 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">
+                <span class="material-symbols-outlined" style="color:#c084fc">history</span>Order History
+              </h3>
+              <div class="overflow-y-auto max-h-60">
+                <table class="w-full text-left border-collapse font-mono text-2xs">
+                  <thead>
+                    <tr class="border-b" style="border-color:var(--border);color:var(--text-dim)">
+                      <th class="pb-2">Time</th>
+                      <th class="pb-2">Asset</th>
+                      <th class="pb-2">Type</th>
+                      <th class="pb-2 text-right">Price</th>
+                      <th class="pb-2 text-right">Qty</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pt-order-history-list">
+                    <tr>
+                      <td colspan="5" class="text-center py-6" style="color:var(--text-dim)">No orders executed yet.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -1600,7 +1785,7 @@ const NAV_ITEMS = [
   { id:'dashboard',   icon:'dashboard',         label:'Dashboard',    mobileLabel:'Dash'    },
   { id:'predictions', icon:'psychology_alt',    label:'Predictions',  mobileLabel:'Predict' },
   { id:'portfolio',   icon:'pie_chart',         label:'Portfolio',    mobileLabel:'Port'    },
-  { id:'screener',    icon:'query_stats',       label:'Screener',     mobileLabel:'Screen'  },
+  { id:'screener',    icon:'monetization_on',   label:'Paper Trading', mobileLabel:'Trade'  },
   { id:'crypto',      icon:'candlestick_chart', label:'NSE Sectors',  mobileLabel:'Sectors' },
   { id:'settings',    icon:'settings',          label:'Settings',     mobileLabel:'Config'  },
 ];
@@ -1658,6 +1843,8 @@ function navigateTo(pageId) {
   target.scrollTop = 0;
   // Init TV chart when Predictions page is shown
   if (pageId === 'predictions' && !lwChart) reinitTV(tvSymbol);
+  // Fetch paper trading details when entering the Trade tab
+  if (pageId === 'screener') loadPaperTrading();
 }
 
 function openMobileNav()  { document.getElementById('mobile-nav').classList.add('open'); }
@@ -1714,7 +1901,7 @@ async function handleTerminalInput(e) {
       out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Fetching prediction for ${arg}...</div>`);
       closeTerminal(); triggerPrediction(arg);
     },
-    scan: () => { out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Loading scanner...</div>`); closeTerminal(); navigateTo('screener'); loadScanResults(); },
+    scan: () => { out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Opening Paper Trading dashboard...</div>`); closeTerminal(); navigateTo('screener'); },
     price: async () => {
       if (!arg) { out.insertAdjacentHTML('beforeend', `<div style="color:#ff8080;margin-top:4px">Usage: price TCS.NS</div>`); return; }
       out.insertAdjacentHTML('beforeend', `<div style="color:#00e290;margin-top:4px">Fetching price for ${arg}...</div>`);
@@ -2416,59 +2603,235 @@ async function runBacktest() {
 }
 
 // ─────────────────────────────────────────────────────────
-// MARKET SCANNER
+// PAPER TRADING SIMULATOR
 // ─────────────────────────────────────────────────────────
-async function loadScanResults() {
-  const container = document.getElementById('screener-content');
-  container.innerHTML = '<div class="glass-card rounded-2xl p-16 text-center" style="color:var(--text-dim)"><div class="spinner mx-auto mb-3"></div><div class="text-xs font-mono">Loading scan results...</div></div>';
+async function loadPaperTrading() {
+  const stored = localStorage.getItem('nq_auth');
+  if (!stored) {
+    document.getElementById('login-overlay').classList.remove('hidden');
+    return;
+  }
+  const user = JSON.parse(stored);
+  const username = user.username;
+
   try {
-    const data = await fetch(`${API_BASE}/api/scan`).then(r=>r.json());
-    if (!data.categories || !Object.keys(data.categories).length) throw new Error('No results');
-    renderScanResults(data);
-  } catch(e) {
-    container.innerHTML = `<div class="glass-card rounded-2xl p-10 text-center text-sm font-mono" style="color:#ff8080">No scan data: ${e.message}. Try "Run New Scan".</div>`;
+    const res = await fetch(`${API_BASE}/api/paper/portfolio?username=${encodeURIComponent(username)}`);
+    if (!res.ok) throw new Error('Failed to load portfolio');
+    const data = await res.json();
+
+    // Render Balances
+    const symbol = data.currency || '₹';
+    document.getElementById('pt-cash-balance').textContent = `${symbol}${data.cash_balance.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
+    document.getElementById('pt-portfolio-value').textContent = `${symbol}${data.portfolio_value.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
+    
+    const pnlVal = data.unrealized_pnl;
+    const pnlEl = document.getElementById('pt-unrealized-pnl');
+    const pnlCard = document.getElementById('pt-pnl-card');
+    
+    pnlEl.textContent = `${pnlVal >= 0 ? '+' : ''}${symbol}${pnlVal.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
+    if (pnlVal > 0) {
+      pnlEl.style.color = '#52ffac';
+      pnlCard.style.borderLeftColor = '#52ffac';
+    } else if (pnlVal < 0) {
+      pnlEl.style.color = '#ff8080';
+      pnlCard.style.borderLeftColor = '#ff8080';
+    } else {
+      pnlEl.style.color = 'var(--text-dim)';
+      pnlCard.style.borderLeftColor = 'var(--border)';
+    }
+
+    // Render stats
+    document.getElementById('pt-sharpe-ratio').textContent = data.sharpe_ratio.toFixed(2);
+    document.getElementById('pt-win-rate').textContent = `${data.win_rate.toFixed(1)}%`;
+    document.getElementById('pt-metrics-drawdown').textContent = `${data.max_drawdown.toFixed(1)}%`;
+
+    // Render Positions
+    const posList = document.getElementById('pt-positions-list');
+    posList.innerHTML = '';
+    if (!data.positions || !data.positions.length) {
+      posList.innerHTML = `<tr><td colspan="6" class="text-center py-6" style="color:var(--text-dim)">No active positions. Buy a stock to get started!</td></tr>`;
+    } else {
+      data.positions.forEach(pos => {
+        const isProfit = pos.unrealized_pnl >= 0;
+        const pnlCol = isProfit ? '#52ffac' : '#ff8080';
+        posList.insertAdjacentHTML('beforeend', `
+          <tr class="border-b" style="border-color:var(--border)">
+            <td class="py-2.5 font-bold" style="color:var(--text)">${pos.ticker}</td>
+            <td class="py-2.5 text-right" style="color:var(--text)">${symbol}${pos.average_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2.5 text-right font-semibold" style="color:var(--text)">${pos.quantity}</td>
+            <td class="py-2.5 text-right" style="color:var(--text)">${symbol}${pos.current_price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2.5 text-right font-bold" style="color:${pnlCol}">${isProfit ? '+' : ''}${symbol}${pos.unrealized_pnl.toLocaleString('en-IN', {maximumFractionDigits:2})} (${isProfit ? '+' : ''}${pos.unrealized_pnl_percent.toFixed(1)}%)</td>
+            <td class="py-2.5 text-right">
+              <button onclick="fillPTOrderForm('${pos.ticker}', 'SELL', ${pos.quantity}, ${pos.current_price})" class="px-2.5 py-1 rounded-lg text-3xs font-bold uppercase transition-all" style="background:rgba(255,128,128,0.1);color:#ff8080;border:1px solid rgba(255,128,128,0.2)">
+                Sell
+              </button>
+            </td>
+          </tr>
+        `);
+      });
+    }
+
+    // Render Order History
+    const histRes = await fetch(`${API_BASE}/api/paper/history?username=${encodeURIComponent(username)}`);
+    const history = await histRes.json();
+    const histList = document.getElementById('pt-order-history-list');
+    histList.innerHTML = '';
+    if (!history || !history.length) {
+      histList.innerHTML = `<tr><td colspan="5" class="text-center py-6" style="color:var(--text-dim)">No orders executed yet.</td></tr>`;
+    } else {
+      history.forEach(order => {
+        const col = order.direction === 'BUY' ? '#52ffac' : '#ff8080';
+        const formattedTime = new Date(order.created_at).toLocaleString('en-IN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+        histList.insertAdjacentHTML('beforeend', `
+          <tr class="border-b" style="border-color:var(--border)">
+            <td class="py-2" style="color:var(--text-dim)">${formattedTime}</td>
+            <td class="py-2 font-bold" style="color:var(--text)">${order.ticker}</td>
+            <td class="py-2 font-semibold" style="color:${col}">${order.direction}</td>
+            <td class="py-2 text-right" style="color:var(--text)">${symbol}${order.price.toLocaleString('en-IN', {maximumFractionDigits:2})}</td>
+            <td class="py-2 text-right" style="color:var(--text)">${order.quantity}</td>
+          </tr>
+        `);
+      });
+    }
+
+  } catch (e) {
+    console.error('Error loading paper trading portfolio:', e);
   }
 }
 
-function renderScanResults(data) {
-  const container = document.getElementById('screener-content');
-  const isDark = currentTheme !== 'light';
-  let html = '';
-  for (const [cat, stocks] of Object.entries(data.categories||{})) {
-    if (!stocks?.length) continue;
-    html += `<div class="glass-card rounded-2xl p-5 mb-5 hover-lift">
-      <h3 class="font-bold text-sm mb-4 border-b pb-3 uppercase tracking-wider" style="color:var(--text);border-color:var(--border)">${cat.replace(/_/g,' ')}</h3>
-      <div class="overflow-x-auto">
-        <table class="w-full text-xs font-mono">
-          <thead><tr class="border-b" style="border-color:var(--border);color:var(--text-dim)">
-            <th class="text-left py-2 pr-4">Symbol</th><th class="text-right py-2 pr-4">Price</th>
-            <th class="text-right py-2 pr-4">Signal</th><th class="text-right py-2 pr-4">Confidence</th><th class="text-right py-2">Sentiment</th>
-          </tr></thead>
-          <tbody>`;
-    stocks.slice(0,15).forEach(s => {
-      const col = s.signal==='Bullish' ? BULL_COLOR : s.signal==='Bearish' ? BEAR_COLOR : NEUT_COLOR;
-      html += `<tr class="screener-row border-b cursor-pointer" onclick="triggerPrediction('${s.ticker}')" style="border-color:var(--border)">
-        <td class="py-2 pr-4 font-semibold" style="color:var(--text)">${s.ticker}</td>
-        <td class="py-2 pr-4 text-right" style="color:var(--text)">${s.price ? '₹'+parseFloat(s.price).toLocaleString('en-IN',{maximumFractionDigits:2}) : '—'}</td>
-        <td class="py-2 pr-4 text-right font-semibold" style="color:${col}">${s.signal||'—'}</td>
-        <td class="py-2 pr-4 text-right" style="color:var(--text-dim)">${s.confidence_score ? s.confidence_score+'%' : '—'}</td>
-        <td class="py-2 text-right" style="color:var(--text-dim)">${s.sentiment_score ? parseFloat(s.sentiment_score).toFixed(2) : '—'}</td>
-      </tr>`;
+function fillPTOrderForm(ticker, direction, qty, price) {
+  document.getElementById('pt-order-ticker').value = ticker;
+  document.getElementById('pt-order-direction').value = direction;
+  document.getElementById('pt-order-qty').value = qty;
+  document.getElementById('pt-order-price').value = price;
+  updatePTOrderCosts();
+  checkPTTickerPrice();
+}
+
+async function checkPTTickerPrice() {
+  const tickerInput = document.getElementById('pt-order-ticker');
+  const ticker = tickerInput.value.trim().toUpperCase();
+  if (!ticker) return;
+
+  const priceInput = document.getElementById('pt-order-price');
+  const adviseEl = document.getElementById('pt-ai-advise');
+  
+  priceInput.value = '';
+  priceInput.placeholder = 'Fetching live quote...';
+  adviseEl.innerHTML = '<div class="spinner text-xs mb-1"></div>Calculating AI consensus trajectory...';
+
+  try {
+    const res = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=1M`);
+    if (!res.ok) throw new Error('Ticker not found');
+    const data = await res.json();
+    
+    priceInput.value = data.current_price;
+    updatePTOrderCosts();
+
+    const direction = data.prediction_direction;
+    const confidence = data.confidence_score;
+    const col = direction === 'Bullish' ? '#52ffac' : direction === 'Bearish' ? '#ff8080' : 'var(--text-dim)';
+    
+    adviseEl.innerHTML = `AI Consensus: <span class="font-bold" style="color:${col}">${direction}</span> with <span class="font-bold" style="color:${col}">${confidence}% confidence</span>. Linear Trend Model suggests a target of ${data.currency_symbol}${data.forecast_price.toFixed(2)}.`;
+  } catch (e) {
+    priceInput.placeholder = 'Error';
+    adviseEl.textContent = 'Could not fetch price/predictions for ticker. Ensure it is valid.';
+  }
+}
+
+function updatePTOrderCosts() {
+  const qty = parseFloat(document.getElementById('pt-order-qty').value) || 0;
+  const price = parseFloat(document.getElementById('pt-order-price').value) || 0;
+  const direction = document.getElementById('pt-order-direction').value;
+  
+  const estCost = qty * price;
+  const ticker = document.getElementById('pt-order-ticker').value.trim().toUpperCase();
+  const isIndian = ticker.endsWith('.NS') || ticker.endsWith('.BO');
+  const symbol = isIndian ? '₹' : '$';
+
+  document.getElementById('pt-order-est-cost').textContent = `${symbol}${estCost.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
+}
+
+async function placeVirtualOrder() {
+  const stored = localStorage.getItem('nq_auth');
+  if (!stored) return;
+  const user = JSON.parse(stored);
+
+  const ticker = document.getElementById('pt-order-ticker').value.trim().toUpperCase();
+  const direction = document.getElementById('pt-order-direction').value;
+  const qty = parseFloat(document.getElementById('pt-order-qty').value) || 0;
+  const price = parseFloat(document.getElementById('pt-order-price').value) || 0;
+  const orderType = document.getElementById('pt-order-type').value;
+
+  const statusEl = document.getElementById('pt-order-status');
+  statusEl.classList.remove('hidden');
+  statusEl.style.color = 'var(--text-dim)';
+  statusEl.textContent = 'Executing transaction...';
+
+  if (!ticker || qty <= 0 || price <= 0) {
+    statusEl.textContent = 'Please fill out all order parameters.';
+    statusEl.style.color = '#ff8080';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/paper/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: user.username,
+        ticker: ticker,
+        direction: direction,
+        quantity: qty,
+        price: price,
+        order_type: orderType
+      })
     });
-    html += `</tbody></table></div></div>`;
+    const data = await res.json();
+    if (!res.ok) {
+      statusEl.textContent = data.detail || 'Transaction failed.';
+      statusEl.style.color = '#ff8080';
+    } else {
+      statusEl.textContent = data.message;
+      statusEl.style.color = '#52ffac';
+      
+      document.getElementById('pt-order-ticker').value = '';
+      document.getElementById('pt-order-qty').value = '10';
+      document.getElementById('pt-order-price').value = '';
+      document.getElementById('pt-order-est-cost').textContent = '₹0.00';
+      document.getElementById('pt-ai-advise').innerHTML = 'Enter a ticker and click <span style="color:#00e290">Quote Price</span> to fetch live model predictions.';
+      
+      await loadPaperTrading();
+      setTimeout(() => statusEl.classList.add('hidden'), 5000);
+    }
+  } catch (e) {
+    statusEl.textContent = 'Transaction error: ' + e.message;
+    statusEl.style.color = '#ff8080';
   }
-  container.innerHTML = html || '<div class="text-center text-sm font-mono" style="color:var(--text-muted)">No scan data available.</div>';
 }
 
-async function triggerMarketScan() {
-  const loading = document.getElementById('scan-loading');
-  loading && loading.classList.remove('hidden');
+async function resetPaperTrading() {
+  const confirmed = confirm('Are you sure you want to reset your virtual trading account? This will restore your cash balance and wipe all open positions and trade history.');
+  if (!confirmed) return;
+
+  const stored = localStorage.getItem('nq_auth');
+  if (!stored) return;
+  const user = JSON.parse(stored);
+
   try {
-    await fetch(`${API_BASE}/api/scan/refresh`, { method:'POST' });
-    await new Promise(r => setTimeout(r, 3000));
-    await loadScanResults();
-  } finally {
-    loading && loading.classList.add('hidden');
+    const res = await fetch(`${API_BASE}/api/paper/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user.username })
+    });
+    if (res.ok) {
+      alert('Virtual portfolio reset successfully!');
+      await loadPaperTrading();
+    } else {
+      alert('Failed to reset portfolio.');
+    }
+  } catch (e) {
+    alert('Error resetting portfolio: ' + e.message);
   }
 }
 
