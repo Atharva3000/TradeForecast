@@ -801,7 +801,19 @@
         <div class="flex-1 overflow-y-auto p-5 flex flex-col gap-5">
 
           <!-- TradingView widget -->
-          <div class="glass-card rounded-2xl overflow-hidden hover-lift flex flex-col" style="min-height:520px">
+          <div class="glass-card rounded-2xl overflow-hidden hover-lift flex flex-col" style="min-height:560px">
+            <!-- Chart Tabs Header -->
+            <div class="flex justify-between items-center border-b px-5 py-3" style="border-color:var(--border)">
+              <div class="flex gap-2">
+                <button id="chart-tab-ai" onclick="switchChartMode('ai')" class="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition-all" style="background:rgba(0,226,144,0.1);color:#00e290">AI Prediction</button>
+                <button id="chart-tab-interactive" onclick="switchChartMode('interactive')" class="px-3 py-1.5 rounded-xl text-xs font-mono font-semibold transition-all" style="color:var(--text-muted)">Interactive Tool</button>
+              </div>
+              <a id="tv-external-link" href="#" target="_blank" class="flex items-center gap-1.5 text-xs hover:underline" style="color:#00e290">
+                <span class="material-symbols-outlined text-xs">open_in_new</span>
+                TradingView Site ↗
+              </a>
+            </div>
+
             <!-- Warning banner for NSE/BSE restricted symbols -->
             <div id="tv-warning-banner" class="hidden px-4 py-2.5 text-xs font-mono items-center justify-between border-b" style="background:rgba(255,128,128,0.06);border-color:rgba(255,128,128,0.15);color:#ff8080">
               <div class="flex items-center gap-2">
@@ -812,11 +824,23 @@
                 Open Full Chart on TradingView ↗
               </a>
             </div>
+
+            <!-- AI Prediction Chart Container -->
             <div id="tv-chart-container" class="flex-1" style="height:520px">
               <div class="flex items-center justify-center h-full text-sm font-mono" style="color:var(--text-dim)">
                 <div class="text-center">
                   <div class="spinner mx-auto mb-3"></div>
                   <div>Initialising TradingView chart...</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Official TradingView Interactive Chart Container -->
+            <div id="tv-interactive-container" class="flex-1 hidden" style="height:520px">
+              <div class="flex items-center justify-center h-full text-sm font-mono" style="color:var(--text-dim)">
+                <div class="text-center">
+                  <div class="spinner mx-auto mb-3"></div>
+                  <div>Loading interactive chart...</div>
                 </div>
               </div>
             </div>
@@ -1521,6 +1545,7 @@ let tvSymbol  = 'RELIANCE.NS';
 let tvInterval = '1d';
 let tvStyle    = '1';
 let currentTheme = localStorage.getItem('nq_theme') || 'dark';
+let activeChartMode = 'ai'; // 'ai' or 'interactive'
 
 // ─────────────────────────────────────────────────────────
 // THEME
@@ -1552,6 +1577,11 @@ function applyTheme(t) {
         borderColor: isDark ? '#2b2b3e' : '#d1d4dc',
       },
     });
+  }
+
+  // Update interactive chart theme
+  if (activeChartMode === 'interactive') {
+    initInteractiveTV();
   }
 }
 function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
@@ -2085,6 +2115,95 @@ function reinitTV(ticker) {
   lwChart = null;
   activeSeries = null;
   lwPredictionSeries = null;
+
+  if (activeChartMode === 'interactive') {
+    initInteractiveTV();
+  }
+}
+
+function switchChartMode(mode) {
+  activeChartMode = mode;
+  const aiContainer = document.getElementById('tv-chart-container');
+  const interactiveContainer = document.getElementById('tv-interactive-container');
+  const aiTab = document.getElementById('chart-tab-ai');
+  const interactiveTab = document.getElementById('chart-tab-interactive');
+  const warningBanner = document.getElementById('tv-warning-banner');
+
+  if (mode === 'ai') {
+    if (aiContainer) aiContainer.classList.remove('hidden');
+    if (interactiveContainer) interactiveContainer.classList.add('hidden');
+    if (warningBanner) warningBanner.classList.add('hidden');
+
+    if (aiTab) {
+      aiTab.style.background = 'rgba(0,226,144,0.1)';
+      aiTab.style.color = '#00e290';
+    }
+    if (interactiveTab) {
+      interactiveTab.style.background = 'transparent';
+      interactiveTab.style.color = 'var(--text-muted)';
+    }
+  } else {
+    if (aiContainer) aiContainer.classList.add('hidden');
+    if (interactiveContainer) interactiveContainer.classList.remove('hidden');
+    
+    const isIndian = tvSymbol.endsWith('.NS') || tvSymbol.endsWith('.BO') || tvSymbol.startsWith('^NSE') || tvSymbol.startsWith('^BSE');
+    if (warningBanner) {
+      if (isIndian) {
+        warningBanner.classList.remove('hidden');
+        const sym = toTVSymbol(tvSymbol);
+        const tvSearchSym = sym.replace(':', '-');
+        const bannerLink = document.getElementById('tv-banner-link');
+        if (bannerLink) bannerLink.href = `https://in.tradingview.com/symbols/${tvSearchSym}/`;
+      } else {
+        warningBanner.classList.add('hidden');
+      }
+    }
+
+    if (interactiveTab) {
+      interactiveTab.style.background = 'rgba(0,226,144,0.1)';
+      interactiveTab.style.color = '#00e290';
+    }
+    if (aiTab) {
+      aiTab.style.background = 'transparent';
+      aiTab.style.color = 'var(--text-muted)';
+    }
+
+    initInteractiveTV();
+  }
+}
+
+function initInteractiveTV() {
+  const container = document.getElementById('tv-interactive-container');
+  if (!container || activeChartMode !== 'interactive') return;
+
+  container.innerHTML = `<div id="tv-widget-mount" style="height:100%;width:100%"></div>`;
+
+  const sym = toTVSymbol(tvSymbol);
+  
+  let tvIntervalCode = 'D';
+  if (tvInterval === '1w') tvIntervalCode = 'W';
+  else if (tvInterval === '1mo') tvIntervalCode = 'M';
+  else if (tvInterval.endsWith('m')) tvIntervalCode = tvInterval.replace('m', '');
+  else if (tvInterval.endsWith('h')) tvIntervalCode = (parseInt(tvInterval.replace('h', '')) * 60).toString();
+
+  try {
+    new TradingView.widget({
+      "autosize": true,
+      "symbol": sym,
+      "interval": tvIntervalCode,
+      "timezone": "Etc/UTC",
+      "theme": currentTheme === 'light' ? 'light' : 'dark',
+      "style": tvStyle,
+      "locale": "en",
+      "enable_publishing": false,
+      "hide_side_toolbar": false,
+      "allow_symbol_change": false,
+      "container_id": "tv-widget-mount"
+    });
+  } catch (e) {
+    console.error("Failed to load TradingView interactive widget:", e);
+    container.innerHTML = `<div class="flex items-center justify-center h-full text-xs font-mono" style="color:#ff8080">Failed to load interactive widget: ${e.message}</div>`;
+  }
 }
 
 function initLightweightChart() {
@@ -2282,6 +2401,10 @@ function setTVStyle(styleCode, label, btn) {
   if (activePredictionData) {
     const styleName = styleMap[styleCode] || 'Candles';
     renderLightweightChartData(activePredictionData, styleName);
+  }
+
+  if (activeChartMode === 'interactive') {
+    initInteractiveTV();
   }
 }
 
