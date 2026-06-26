@@ -341,6 +341,234 @@
       color: #00b478;
       border-color: rgba(0,180,120,0.3);
     }
+
+    /* ── KAREN CHAT BOT STYLE ───────────────────────────── */
+    .karen-chat-bubble {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00e290, #00b478);
+      color: #0d1117;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 226, 144, 0.4);
+      z-index: 1000;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .karen-chat-bubble:hover {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 0 6px 25px rgba(0, 226, 144, 0.6);
+    }
+    .karen-chat-widget {
+      position: fixed;
+      bottom: 95px;
+      right: 25px;
+      width: 380px;
+      height: 550px;
+      border-radius: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .karen-chat-widget.active {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    /* Header */
+    .karen-header {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 15px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    /* Log area */
+    .karen-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: rgba(0, 0, 0, 0.15);
+    }
+    /* Bubble styles */
+    .karen-msg {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .karen-msg p {
+      margin-bottom: 8px;
+    }
+    .karen-msg p:last-child {
+      margin-bottom: 0;
+    }
+    .karen-msg.user {
+      align-self: flex-end;
+      background: #00e290;
+      color: #0d1117;
+      border-bottom-right-radius: 4px;
+      font-weight: 500;
+    }
+    .karen-msg.karen {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+    /* Table rendering in chat */
+    .karen-msg table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+    .karen-msg th, .karen-msg td {
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      text-align: left;
+    }
+    .karen-msg th {
+      background: rgba(255, 255, 255, 0.05);
+      font-weight: 600;
+    }
+    /* Input area */
+    .karen-input-area {
+      padding: 15px 20px;
+      border-top: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.01);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .karen-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 15px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .karen-input:focus {
+      border-color: #00e290;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    /* Suggestion chips */
+    .karen-chips {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 10px 20px;
+      overflow-x: auto;
+      background: rgba(0, 0, 0, 0.15);
+      scrollbar-width: none;
+    }
+    .karen-chips::-webkit-scrollbar {
+      display: none;
+    }
+    .karen-chip {
+      white-space: nowrap;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .karen-chip:hover {
+      background: rgba(0, 226, 144, 0.08);
+      color: #00e290;
+      border-color: rgba(0, 226, 144, 0.3);
+    }
+    /* Typing indicator */
+    .karen-typing-container {
+      padding: 0 20px;
+      margin-bottom: 10px;
+      align-self: flex-start;
+      display: none;
+    }
+    .karen-typing {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 10px 15px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 16px;
+      width: fit-content;
+    }
+    .karen-typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      animation: karenPulse 1.4s infinite ease-in-out both;
+    }
+    .karen-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .karen-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes karenPulse {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+    /* Theme adaptations */
+    [data-theme="light"] .karen-chat-widget {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      border-color: rgba(0, 0, 0, 0.08);
+    }
+    [data-theme="light"] .karen-msg.karen {
+      background: rgba(0, 0, 0, 0.03);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="light"] .karen-input {
+      background: rgba(0, 0, 0, 0.02);
+      border-color: rgba(0, 0, 0, 0.08);
+      color: #0d1117;
+    }
+    [data-theme="light"] .karen-input:focus {
+      border-color: #00b478;
+      background: rgba(0, 0, 0, 0.04);
+    }
+    [data-theme="light"] .karen-chip {
+      background: rgba(0, 0, 0, 0.02);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+    [data-theme="light"] .karen-chip:hover {
+      background: rgba(0, 180, 120, 0.08);
+      color: #00b478;
+      border-color: rgba(0, 180, 120, 0.3);
+    }
+    [data-theme="light"] .karen-typing {
+      background: rgba(0, 0, 0, 0.03);
+    }
+    [data-theme="dark"] .karen-chat-widget {
+      background: rgba(21, 25, 34, 0.85);
+      backdrop-filter: blur(20px);
+    }
   </style>
 </head>
 
@@ -3401,6 +3629,199 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Render initial notifications list
   renderNotifications();
 });
+
+// ─────────────────────────────────────────────────────────
+// KAREN AI ASSISTANT SCRIPT
+// ─────────────────────────────────────────────────────────
+let karenHistory = [];
+
+function formatKarenMarkdown(md) {
+  if (!md) return "";
+  let lines = md.split("\n");
+  let inTable = false;
+  let tableHTML = "";
+  let newLines = [];
+  for (let line of lines) {
+    if (line.trim().startsWith("|") && line.trim().endsWith("|")) {
+      if (!inTable) {
+        inTable = true;
+        tableHTML = "<table>";
+      }
+      let cells = line.split("|").slice(1, -1);
+      let isHeader = cells.every(c => c.trim().startsWith("---") || c.trim().startsWith(":---") || c.trim().startsWith("---:"));
+      if (isHeader) continue;
+      let rowType = tableHTML.includes("</th>") ? "td" : "th";
+      tableHTML += "<tr>" + cells.map(c => `<${rowType}>${formatMarkdownInline(c.trim())}</${rowType}>`).join("") + "</tr>";
+    } else {
+      if (inTable) {
+        inTable = false;
+        tableHTML += "</table>";
+        newLines.push(tableHTML);
+      }
+      newLines.push(line);
+    }
+  }
+  if (inTable) {
+    tableHTML += "</table>";
+    newLines.push(tableHTML);
+  }
+  let bodyText = newLines.join("\n");
+  return bodyText
+    .replace(/\r\n/g, "\n")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code class='px-1.5 py-0.5 rounded bg-black/20 font-mono text-3xs'>$1</code>")
+    .replace(/^### (.*$)/gim, '<h4 class="text-xs font-mono font-bold mt-2 mb-1">$1</h4>')
+    .replace(/^#### (.*$)/gim, '<h5 class="text-2xs font-mono font-bold mt-2 mb-1">$1</h5>')
+    .replace(/^\s*-\s+(.*$)/gim, '<li class="ml-4 list-disc text-3xs font-mono">$1</li>')
+    .replace(/^\s*\*\s+(.*$)/gim, '<li class="ml-4 list-disc text-3xs font-mono">$1</li>')
+    .split("\n\n").map(p => p.trim().startsWith("<") ? p : `<p>${p}</p>`).join("");
+}
+
+function formatMarkdownInline(txt) {
+  return txt
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, "<code class='px-1 py-0.5 rounded bg-black/20 font-mono text-4xs'>$1</code>");
+}
+
+function toggleKarenChat() {
+  const widget = document.getElementById('karen-widget');
+  if (widget) {
+    widget.classList.toggle('active');
+    if (widget.classList.contains('active')) {
+      const log = document.getElementById('karen-messages-log');
+      if (log) log.scrollTop = log.scrollHeight;
+      const inp = document.getElementById('karen-text-input');
+      if (inp) inp.focus();
+    }
+  }
+}
+
+function handleKarenKey(e) {
+  if (e.key === 'Enter') {
+    sendKarenMessage();
+  }
+}
+
+function submitKarenQuery(text) {
+  sendKarenMessage(text);
+}
+
+async function sendKarenMessage(overrideText = null) {
+  const input = document.getElementById('karen-text-input');
+  if (!input) return;
+  const text = (overrideText !== null ? overrideText : input.value).trim();
+  if (!text) return;
+  if (overrideText === null) {
+    input.value = '';
+  }
+  const log = document.getElementById('karen-messages-log');
+  if (!log) return;
+  log.insertAdjacentHTML('beforeend', `
+    <div class="karen-msg user">
+      <p>${text}</p>
+    </div>
+  `);
+  log.scrollTop = log.scrollHeight;
+  const typing = document.getElementById('karen-typing-indicator');
+  if (typing) typing.style.display = 'block';
+  log.scrollTop = log.scrollHeight;
+  let activeUser = 'tester';
+  try {
+    const session = JSON.parse(sessionStorage.getItem('nq_auth') || localStorage.getItem('nq_auth') || '{}');
+    if (session.username) activeUser = session.username;
+  } catch(e) {}
+  const payload = {
+    username: activeUser,
+    message: text,
+    history: karenHistory,
+    active_ticker: tvSymbol
+  };
+  karenHistory.push({ role: 'user', content: text });
+  try {
+    const res = await fetch('/api/chat/karen', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    if (typing) typing.style.display = 'none';
+    if (!res.ok) throw new Error(`API error: ${res.statusText}`);
+    const data = await res.json();
+    const formattedHTML = formatKarenMarkdown(data.response);
+    log.insertAdjacentHTML('beforeend', `
+      <div class="karen-msg karen">
+        ${formattedHTML}
+      </div>
+    `);
+    log.scrollTop = log.scrollHeight;
+    karenHistory.push({ role: 'assistant', content: data.response });
+    if (data.action_executed) {
+      console.log(`Karen executed action: ${data.action_executed}`);
+      if (typeof loadPaperTrading === 'function') loadPaperTrading();
+      if (typeof loadDashboardData === 'function') loadDashboardData();
+    }
+  } catch (error) {
+    if (typing) typing.style.display = 'none';
+    log.insertAdjacentHTML('beforeend', `
+      <div class="karen-msg karen">
+        <p style="color:#ff8080">⚠️ Sorry, I encountered an error: ${error.message}</p>
+      </div>
+    `);
+    log.scrollTop = log.scrollHeight;
+  }
+}
 </script>
+
+<!-- KAREN AI ASSISTANT WIDGET -->
+<div class="karen-chat-bubble" onclick="toggleKarenChat()" id="karen-bubble" title="Chat with Karen AI">
+  <span class="material-symbols-outlined" style="font-size:30px;font-weight:bold">forum</span>
+</div>
+<div class="karen-chat-widget flex flex-col" id="karen-widget">
+  <div class="karen-header">
+    <div class="flex items-center gap-2.5">
+      <span class="material-symbols-outlined" style="color:#00e290;font-size:24px">smart_toy</span>
+      <div>
+        <div class="text-xs font-mono font-bold" style="color:var(--text)">Karen AI Assistant</div>
+        <div class="flex items-center gap-1">
+          <span style="width:6px;height:6px;border-radius:50%;background:#00e290;display:inline-block"></span>
+          <span class="text-3xs font-mono" style="color:var(--text-dim)">Platform Core Agent</span>
+        </div>
+      </div>
+    </div>
+    <button onclick="toggleKarenChat()" class="text-xs hover:opacity-80" style="color:var(--text-dim)">
+      <span class="material-symbols-outlined" style="font-size:18px">close</span>
+    </button>
+  </div>
+  <div class="karen-messages flex-1" id="karen-messages-log">
+    <div class="karen-msg karen">
+      <p>Hi! I'm <strong>Karen</strong>, your TradeForecast AI trading assistant. 🤖</p>
+      <p>I can help you navigate the platform, place paper trades, review scanner recommendations, and fetch consensus predictions.</p>
+      <p>What can I do for you today?</p>
+    </div>
+  </div>
+  <div class="karen-typing-container" id="karen-typing-indicator">
+    <div class="karen-typing">
+      <div class="karen-typing-dot"></div>
+      <div class="karen-typing-dot"></div>
+      <div class="karen-typing-dot"></div>
+    </div>
+  </div>
+  <div class="karen-chips">
+    <div class="karen-chip" onclick="submitKarenQuery('📊 Predict RELIANCE.NS')">📊 Predict Reliance</div>
+    <div class="karen-chip" onclick="submitKarenQuery('💼 Show my portfolio')">💼 My Portfolio</div>
+    <div class="karen-chip" onclick="submitKarenQuery('🔍 Bullish stocks')">🔍 Top setups</div>
+    <div class="karen-chip" onclick="submitKarenQuery('💸 Reset account')">💸 Reset Account</div>
+    <div class="karen-chip" onclick="submitKarenQuery('❓ Help')">❓ Help</div>
+  </div>
+  <div class="karen-input-area">
+    <input type="text" class="karen-input font-mono" id="karen-text-input" placeholder="Ask Karen to do something..." onkeydown="handleKarenKey(event)">
+    <button onclick="sendKarenMessage()" class="flex items-center justify-center p-2 rounded-xl" style="background:rgba(0,226,144,0.1);color:#00e290">
+      <span class="material-symbols-outlined" style="font-size:18px">send</span>
+    </button>
+  </div>
+</div>
 </body>
 </html>

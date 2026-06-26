@@ -26,6 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
 from routes.stock import router as stock_router
+from routes.karen import router as karen_router
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -82,6 +83,7 @@ async def log_request_duration(request: Request, call_next):
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(stock_router)
+app.include_router(karen_router)
 
 
 @app.on_event("startup")
