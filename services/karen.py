@@ -11,6 +11,7 @@ from stock_universe import ALL_ASSETS, TICKER_TO_NAME
 from services.paper_db import get_portfolio, execute_order, reset_portfolio, set_portfolio_cash
 from services.data_fetcher import fetch_stock_data
 from services.predictor import run_prediction, compute_confidence
+from services.rag import retrieve_context
 
 logger = logging.getLogger(__name__)
 
@@ -199,6 +200,16 @@ async def generate_karen_response(
     ticker_affected = None
     context_data = {}
     
+    # -------------------------------------------------------------------------
+    # RAG RETRIEVAL (Retrieve platform documentation matching user query)
+    # -------------------------------------------------------------------------
+    rag_docs = retrieve_context(msg_clean, limit=1)
+    rag_context = ""
+    if rag_docs:
+        rag_context = "\n\nRelevant Platform Documentation Context:\n"
+        for doc in rag_docs:
+            rag_context += f"### {doc['title']}\n{doc['content']}\n\n"
+
     # -------------------------------------------------------------------------
     # 1. INTENT ANALYSIS & ACTION EXECUTION
     # -------------------------------------------------------------------------
@@ -468,7 +479,7 @@ async def generate_karen_response(
             local_response = f"Failed to reset account: {str(e)}"
 
     # --- H. HELP / FAQ INTENT ---
-    elif re.search(r"(?i)\b(help|how|who|faq|question|explain|guide|karen)\b", msg_clean):
+    elif re.search(r"(?i)\b(help|how|who|faq|question|explain|guide|karen)\b", msg_clean) and not rag_docs:
         local_response = (
             f"### 🤖 TradeForecast AI Support (I'm Karen!)\n\n"
             f"I can help you navigate the platform, check indicators, analyze predictions, and place paper trades! "
@@ -505,6 +516,7 @@ async def generate_karen_response(
             f"Active User: {username}\n"
             f"Current Ticker Context: {active_ticker or 'None'}\n"
             f"Database Context JSON: {json.dumps(context_data)}"
+            f"{rag_context}"
         )
         
         hist_str = ""
@@ -524,6 +536,15 @@ async def generate_karen_response(
                 "system_status": "llm_generated"
             }
             
+    # Fallback to RAG document if local_response is None and RAG matches
+    if not local_response and rag_docs:
+        doc = rag_docs[0]
+        local_response = (
+            f"### 📖 TradeForecast Documentation: **{doc['title']}**\n\n"
+            f"{doc['content']}\n\n"
+            f"*Hope this helps! Let me know if you have other questions about our platform.*"
+        )
+
     if local_response:
         return {
             "response": local_response,
