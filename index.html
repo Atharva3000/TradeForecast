@@ -591,7 +591,12 @@
     <!-- Login Form -->
     <div id="form-login" class="space-y-4">
       <input id="login-user" type="text" placeholder="Username" class="cyber-input w-full px-4 py-3 rounded-xl text-sm">
-      <input id="login-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-3 rounded-xl text-sm" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="relative w-full">
+        <input id="login-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-3 rounded-xl text-sm pr-10" onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" onclick="togglePasswordVisibility('login-pass', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text transition-colors flex items-center justify-center" style="background:transparent;border:none">
+          <span class="material-symbols-outlined text-sm" style="color:var(--text-dim)">visibility</span>
+        </button>
+      </div>
       <!-- Remember me -->
       <div class="flex items-center gap-2 px-1">
         <input id="login-remember" type="checkbox" class="w-4 h-4 accent-[#00e290] bg-black/20 border-gray-600 rounded cursor-pointer" checked>
@@ -605,7 +610,12 @@
     <!-- Register Form -->
     <div id="form-register" class="space-y-3 hidden">
       <input id="reg-user" type="text" placeholder="Username" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
-      <input id="reg-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
+      <div class="relative w-full">
+        <input id="reg-pass" type="password" placeholder="Password" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm pr-10">
+        <button type="button" onclick="togglePasswordVisibility('reg-pass', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text transition-colors flex items-center justify-center" style="background:transparent;border:none">
+          <span class="material-symbols-outlined text-sm" style="color:var(--text-dim)">visibility</span>
+        </button>
+      </div>
       <input id="reg-name" type="text" placeholder="Full Name" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
       <input id="reg-email" type="email" placeholder="Email Address" class="cyber-input w-full px-4 py-2.5 rounded-xl text-sm">
       
@@ -1692,7 +1702,12 @@
                   <!-- AI Assistant Settings -->
                   <div class="border-t pt-4 mt-4" style="border-color:var(--border)">
                     <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">User Gemini API Key</label>
-                    <input id="settings-gemini-key" type="password" class="cyber-input w-full px-3 py-2 rounded-xl text-sm font-mono" placeholder="AI Key (AIzaSy...)" onchange="saveGeminiKey(this.value)">
+                    <div class="relative w-full">
+                      <input id="settings-gemini-key" type="password" class="cyber-input w-full px-3 py-2 rounded-xl text-sm font-mono pr-10" placeholder="AI Key (AIzaSy...)" onchange="saveGeminiKey(this.value)">
+                      <button type="button" onclick="togglePasswordVisibility('settings-gemini-key', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text transition-colors flex items-center justify-center" style="background:transparent;border:none">
+                        <span class="material-symbols-outlined text-sm" style="color:var(--text-dim)">visibility</span>
+                      </button>
+                    </div>
                     <p class="text-3xs font-mono mt-1" style="color:var(--text-muted)">Your API key is saved locally in your browser and sent directly in chat requests. Obtain a free key from Google AI Studio.</p>
                   </div>
                   <div>
@@ -1897,7 +1912,7 @@ async function doLogin() {
   }
   
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ username: u, password: p })
@@ -1931,7 +1946,7 @@ async function doRegister() {
   }
   
   try {
-    const res = await fetch('/api/auth/register', {
+    const res = await fetch(`${API_BASE}/api/auth/register`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -1989,6 +2004,19 @@ function loadGeminiKey() {
   if (el) el.value = key;
 }
 
+function togglePasswordVisibility(inputId, btn) {
+  const el = document.getElementById(inputId);
+  if (!el) return;
+  const icon = btn.querySelector('.material-symbols-outlined');
+  if (el.type === 'password') {
+    el.type = 'text';
+    if (icon) icon.textContent = 'visibility_off';
+  } else {
+    el.type = 'password';
+    if (icon) icon.textContent = 'visibility';
+  }
+}
+
 function updateUserUI(user) {
   const name = user.name || user.username || 'Trader';
   const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
@@ -2038,7 +2066,7 @@ async function updateProfile() {
   status.textContent = 'Updating...';
   
   try {
-    const res = await fetch('/api/auth/update', {
+    const res = await fetch(`${API_BASE}/api/auth/update`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -2160,7 +2188,7 @@ function getStockName(ticker) {
 
 async function loadStockSuggestions() {
   try {
-    const res = await fetch('/api/stocks');
+    const res = await fetch(`${API_BASE}/api/stocks`);
     if (res.ok) {
       const stocks = await res.json();
       STOCK_UNIVERSE = stocks;
@@ -3595,7 +3623,7 @@ setInterval(() => {
 // ─────────────────────────────────────────────────────────
 async function loadTickerAndIndices() {
   try {
-    const res = await fetch('/api/ticker-prices');
+    const res = await fetch(`${API_BASE}/api/ticker-prices`);
     if (!res.ok) return;
     const data = await res.json();
     
@@ -3958,7 +3986,7 @@ async function sendKarenMessage(overrideText = null) {
   };
   karenHistory.push({ role: 'user', content: text });
   try {
-    const res = await fetch('/api/chat/karen', {
+    const res = await fetch(`${API_BASE}/api/chat/karen`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
