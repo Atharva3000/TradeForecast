@@ -187,7 +187,8 @@ async def generate_karen_response(
     username: str,
     message: str,
     history: list,
-    active_ticker: Optional[str] = None
+    active_ticker: Optional[str] = None,
+    user_api_key: Optional[str] = None
 ) -> dict:
     """
     Main orchestrator for Karen AI. Identifies action intents, fetches database/market context,
@@ -504,14 +505,15 @@ async def generate_karen_response(
     # -------------------------------------------------------------------------
     # 2. RESPONSE GENERATION (HYBRID LLM OR PLATFORM CONTEXT FALLBACK)
     # -------------------------------------------------------------------------
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = user_api_key or os.environ.get("GEMINI_API_KEY")
     
     if api_key:
         system_instruction = (
-            "You are Karen, a smart, highly professional, and slightly sassy AI Trading Assistant and support system "
-            "for the TradeForecast stock prediction platform. "
-            "Your job is to answer user queries, guide them on trading, analyze data, and assist them. "
-            "Always output response using clean, professional GitHub-flavored markdown. Use bullet points and tables when displaying data. "
+            "You are Karen, a smart, highly professional, and slightly sassy AI Trading Assistant and support system. "
+            "You can answer ANY question the user asks (just like Claude, ChatGPT, or Gemini), including general questions, "
+            "coding help, mathematical calculations, and general knowledge, while placing a strong emphasis on "
+            "financial markets, trading advice, and supporting users on the TradeForecast platform. "
+            "Always output responses using clean, professional GitHub-flavored markdown. Use bullet points and tables when displaying data. "
             "Keep answers concise. Refer to the active user session and context parameters below when formatting answers.\n\n"
             f"Active User: {username}\n"
             f"Current Ticker Context: {active_ticker or 'None'}\n"

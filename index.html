@@ -11,7 +11,7 @@
   <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
   <!-- Google OAuth -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
   <script>
@@ -29,7 +29,7 @@
           },
           fontFamily: {
             mono: ["JetBrains Mono", "monospace"],
-            sans: ["Inter", "sans-serif"],
+            sans: ["Plus Jakarta Sans", "Inter", "sans-serif"],
           }
         }
       }
@@ -78,7 +78,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', sans-serif;
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
       overflow: hidden;
       transition: background 0.3s, color 0.3s;
     }
@@ -203,8 +203,18 @@
     /* ── MODALS ───────────────────────────────────────── */
     #notif-panel { display:none;position:absolute;top:60px;right:16px;width:320px;z-index:999; }
     #notif-panel.open { display:block; }
-    #terminal-modal { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center; }
-    #terminal-modal.open { display:flex; }
+    /* Sidebar collapsed rules */
+    #sidebar {
+      transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s, border-right-color 0.3s;
+    }
+    #sidebar.sidebar-collapsed {
+      width: 0 !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      border-right-width: 0px !important;
+      padding-left: 0px !important;
+      padding-right: 0px !important;
+    }
     .mobile-nav-overlay { display:none; }
     @media(max-width:767px){.mobile-nav-overlay.open{display:flex;}}
 
@@ -343,231 +353,215 @@
     }
 
     /* ── KAREN CHAT BOT STYLE ───────────────────────────── */
-    .karen-chat-bubble {
-      position: fixed;
-      bottom: 25px;
-      right: 25px;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #00e290, #00b478);
-      color: #0d1117;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0, 226, 144, 0.4);
-      z-index: 1000;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    .karen-chat-bubble:hover {
-      transform: scale(1.1) rotate(5deg);
-      box-shadow: 0 6px 25px rgba(0, 226, 144, 0.6);
-    }
     .karen-chat-widget {
-      position: fixed;
-      bottom: 95px;
-      right: 25px;
-      width: 380px;
-      height: 550px;
-      border-radius: 20px;
-      z-index: 1000;
+      width: 0px;
+      height: 100vh;
       display: flex;
       flex-direction: column;
+      background: var(--bg-raised);
+      border-left: 1px solid transparent;
+      transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), border-left-color 0.3s;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      transform: translateY(20px);
-      opacity: 0;
-      pointer-events: none;
+      z-index: 40;
+      flex-shrink: 0;
     }
     .karen-chat-widget.active {
-      transform: translateY(0);
-      opacity: 1;
-      pointer-events: auto;
+      width: 450px;
+      border-left: 1px solid var(--border);
+    }
+    @media (max-width: 768px) {
+      .karen-chat-widget {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: 0;
+        z-index: 50;
+      }
+      .karen-chat-widget.active {
+        width: 100%;
+      }
     }
     /* Header */
     .karen-header {
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(255, 255, 255, 0.02);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
-      padding: 15px 20px;
+      padding: 16px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      height: 64px;
+      flex-shrink: 0;
     }
     /* Log area */
     .karen-messages {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      padding: 24px 20px;
       display: flex;
       flex-direction: column;
-      gap: 15px;
-      background: rgba(0, 0, 0, 0.15);
+      gap: 20px;
+      background: transparent;
+    }
+    /* Fade In Up message animation */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-fade-in-up {
+      animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     /* Bubble styles */
     .karen-msg {
-      max-width: 85%;
-      padding: 12px 16px;
-      border-radius: 16px;
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.6;
       word-wrap: break-word;
-    }
-    .karen-msg p {
-      margin-bottom: 8px;
-    }
-    .karen-msg p:last-child {
-      margin-bottom: 0;
     }
     .karen-msg.user {
       align-self: flex-end;
-      background: #00e290;
-      color: #0d1117;
+      background: rgba(0, 226, 144, 0.08);
+      border: 1px solid rgba(0, 226, 144, 0.20);
+      color: var(--text);
+      border-radius: 18px;
       border-bottom-right-radius: 4px;
-      font-weight: 500;
+      padding: 12px 16px;
+      max-width: 85%;
     }
     .karen-msg.karen {
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--border);
+      background: transparent;
+      border: none;
       color: var(--text);
-      border-bottom-left-radius: 4px;
+      max-width: 100%;
+      width: 100%;
     }
-    /* Table rendering in chat */
-    .karen-msg table {
+    /* Markdown Body styling inside chat */
+    .markdown-body p {
+      margin-bottom: 12px;
+    }
+    .markdown-body p:last-child {
+      margin-bottom: 0;
+    }
+    .markdown-body ul, .markdown-body ol {
+      margin-top: 8px;
+      margin-bottom: 8px;
+      padding-left: 20px;
+    }
+    .markdown-body li {
+      margin-bottom: 4px;
+      list-style-type: disc;
+    }
+    .markdown-body table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
-      margin-bottom: 10px;
-      font-size: 11px;
+      margin-top: 12px;
+      margin-bottom: 12px;
+      font-size: 12px;
     }
-    .karen-msg th, .karen-msg td {
+    .markdown-body th, .markdown-body td {
       border: 1px solid var(--border);
-      padding: 6px 8px;
+      padding: 8px 10px;
       text-align: left;
     }
-    .karen-msg th {
-      background: rgba(255, 255, 255, 0.05);
+    .markdown-body th {
+      background: rgba(255, 255, 255, 0.03);
       font-weight: 600;
     }
     /* Input area */
     .karen-input-area {
-      padding: 15px 20px;
+      padding: 16px 20px;
       border-top: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.01);
+      background: rgba(255, 255, 255, 0.005);
+      flex-shrink: 0;
+    }
+    .karen-input-box-wrap {
       display: flex;
       align-items: center;
-      gap: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 4px 12px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .karen-input-box-wrap:focus-within {
+      border-color: #00e290;
+      box-shadow: 0 0 12px rgba(0, 226, 144, 0.15);
     }
     .karen-input {
       flex: 1;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 15px;
+      border: none;
+      background: transparent;
       color: var(--text);
       font-size: 13px;
       outline: none;
-      transition: all 0.2s;
+      padding: 8px 4px;
     }
-    .karen-input:focus {
-      border-color: #00e290;
-      background: rgba(255, 255, 255, 0.05);
+    .karen-input::placeholder {
+      color: var(--text-dim);
     }
-    /* Suggestion chips */
+    /* Chips */
     .karen-chips {
       display: flex;
       gap: 8px;
-      padding: 0 20px 10px 20px;
       overflow-x: auto;
-      background: rgba(0, 0, 0, 0.15);
-      scrollbar-width: none;
+      padding: 8px 20px;
+      background: transparent;
+      border-top: 1px solid transparent;
+      flex-shrink: 0;
     }
     .karen-chips::-webkit-scrollbar {
       display: none;
     }
     .karen-chip {
-      white-space: nowrap;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--border);
       color: var(--text-dim);
       padding: 6px 12px;
-      border-radius: 12px;
+      border-radius: 20px;
       font-size: 11px;
       cursor: pointer;
+      white-space: nowrap;
       transition: all 0.2s;
     }
     .karen-chip:hover {
       background: rgba(0, 226, 144, 0.08);
+      border-color: rgba(0, 226, 144, 0.25);
       color: #00e290;
-      border-color: rgba(0, 226, 144, 0.3);
     }
-    /* Typing indicator */
+    /* Typing Indicator */
     .karen-typing-container {
-      padding: 0 20px;
-      margin-bottom: 10px;
-      align-self: flex-start;
+      padding: 10px 20px;
       display: none;
+      flex-shrink: 0;
     }
     .karen-typing {
-      display: flex;
-      gap: 4px;
+      display: inline-flex;
       align-items: center;
-      padding: 10px 15px;
       background: rgba(255, 255, 255, 0.03);
-      border-radius: 16px;
-      width: fit-content;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 14px;
+      gap: 4px;
     }
     .karen-typing-dot {
       width: 6px;
       height: 6px;
-      background: var(--text-dim);
       border-radius: 50%;
-      animation: karenPulse 1.4s infinite ease-in-out both;
+      background: #00e290;
+      animation: typing 1.4s infinite ease-in-out both;
     }
     .karen-typing-dot:nth-child(1) { animation-delay: -0.32s; }
     .karen-typing-dot:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes karenPulse {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1.0); }
-    }
-    /* Theme adaptations */
-    [data-theme="light"] .karen-chat-widget {
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(20px);
-      border-color: rgba(0, 0, 0, 0.08);
-    }
-    [data-theme="light"] .karen-msg.karen {
-      background: rgba(0, 0, 0, 0.03);
-      border-color: rgba(0, 0, 0, 0.06);
-    }
-    [data-theme="light"] .karen-input {
-      background: rgba(0, 0, 0, 0.02);
-      border-color: rgba(0, 0, 0, 0.08);
-      color: #0d1117;
-    }
-    [data-theme="light"] .karen-input:focus {
-      border-color: #00b478;
-      background: rgba(0, 0, 0, 0.04);
-    }
-    [data-theme="light"] .karen-chip {
-      background: rgba(0, 0, 0, 0.02);
-      border-color: rgba(0, 0, 0, 0.06);
-    }
-    [data-theme="light"] .karen-chip:hover {
-      background: rgba(0, 180, 120, 0.08);
-      color: #00b478;
-      border-color: rgba(0, 180, 120, 0.3);
-    }
-    [data-theme="light"] .karen-typing {
-      background: rgba(0, 0, 0, 0.03);
-    }
-    [data-theme="dark"] .karen-chat-widget {
-      background: rgba(21, 25, 34, 0.85);
-      backdrop-filter: blur(20px);
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
     }
   </style>
 </head>
@@ -672,35 +666,7 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     TERMINAL MODAL
-══════════════════════════════════════════════════════ -->
-<div id="terminal-modal">
-  <div class="w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl m-4" style="border:1px solid rgba(0,226,144,0.2);background:#0a0d13;">
-    <div class="flex items-center justify-between px-4 py-3 border-b" style="border-color:rgba(255,255,255,0.07);background:#111418;">
-      <div class="flex items-center gap-3">
-        <span class="w-3 h-3 rounded-full" style="background:#ff5f57"></span>
-        <span class="w-3 h-3 rounded-full" style="background:#febc2e"></span>
-        <span class="w-3 h-3 rounded-full" style="background:#28c840"></span>
-        <span class="text-xs font-mono ml-2" style="color:#5a6475">TradeForecast Terminal v3.1</span>
-      </div>
-      <button onclick="closeTerminal()" style="color:#5a6475" class="hover:text-white transition-colors">
-        <span class="material-symbols-outlined text-sm">close</span>
-      </button>
-    </div>
-    <div class="p-4 min-h-64 max-h-96 overflow-y-auto font-mono text-sm" id="terminal-output" style="color:#9aa5b4">
-      <div style="color:#00e290">TradeForecast Terminal — v3.1.0</div>
-      <div style="color:#5a6475">Connected to prediction engine. Type <span style="color:#00e290">help</span> for commands.</div>
-      <div style="color:#2a2f3a">────────────────────────────────────</div>
-    </div>
-    <div class="flex items-center gap-3 px-4 py-3 border-t" style="border-color:rgba(255,255,255,0.05);background:#0d1016">
-      <span class="font-mono text-xs font-semibold" style="color:#00e290">$</span>
-      <input id="terminal-input" type="text" placeholder="Enter command..."
-        class="flex-1 bg-transparent border-none outline-none font-mono text-sm placeholder:opacity-30"
-        style="color:var(--text)" onkeydown="handleTerminalInput(event)">
-    </div>
-  </div>
-</div>
+
 
 <!-- ══════════════════════════════════════════════════════
      MOBILE NAV OVERLAY
@@ -731,10 +697,7 @@
       </div>
     </div>
     <nav class="flex-1 overflow-y-auto py-3 flex flex-col gap-1 px-2" id="desktop-nav-links"></nav>
-    <div class="p-4 border-t space-y-3" style="border-color:var(--border)">
-      <button onclick="openTerminal()" class="cyber-btn w-full py-2.5 px-4 rounded-xl text-xs font-mono font-semibold uppercase tracking-widest flex items-center justify-center gap-2">
-        <span class="material-symbols-outlined text-sm">terminal</span>Terminal
-      </button>
+    <div class="p-4 border-t" style="border-color:var(--border)">
       <!-- User pill -->
       <div id="user-pill" class="flex items-center gap-3 px-3 py-2 rounded-xl cursor-pointer" style="background:var(--bg-raised);border:1px solid var(--border)">
         <img id="user-avatar" src="" class="w-7 h-7 rounded-full hidden" alt="avatar">
@@ -748,7 +711,7 @@
   </aside>
 
   <!-- RIGHT COLUMN -->
-  <div class="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+  <div id="main-workspace" class="flex-1 flex flex-col h-screen overflow-hidden min-w-0 transition-all duration-300 ease-in-out">
 
     <!-- TOP HEADER -->
     <header class="flex items-center justify-between h-14 px-5 border-b z-30 shrink-0 backdrop-blur-xl" style="background:var(--header-bg);border-color:var(--border);box-shadow:0 0 18px rgba(0,226,144,0.06)">
@@ -1006,12 +969,12 @@
           <!-- Chart type buttons -->
           <div class="flex gap-1 items-center flex-wrap ml-auto">
             <span class="text-xs font-mono mr-1" style="color:var(--text-muted)">Style:</span>
-            <button class="chart-type-btn active" onclick="setTVStyle('1','Candles',this)">Candles</button>
+            <button class="chart-type-btn" onclick="setTVStyle('1','Candles',this)">Candles</button>
             <button class="chart-type-btn" onclick="setTVStyle('8','Heikin Ashi',this)">Heikin Ashi</button>
             <button class="chart-type-btn" onclick="setTVStyle('0','Bars',this)">Bars</button>
             <button class="chart-type-btn" onclick="setTVStyle('9','Hollow',this)">Hollow</button>
             <button class="chart-type-btn" onclick="setTVStyle('2','Line',this)">Line</button>
-            <button class="chart-type-btn" onclick="setTVStyle('3','Area',this)">Area</button>
+            <button class="chart-type-btn active" onclick="setTVStyle('3','Area',this)">Area</button>
             <button class="chart-type-btn" onclick="setTVStyle('10','Baseline',this)">Baseline</button>
             <button class="chart-type-btn" onclick="setTVStyle('5','Renko',this)">Renko</button>
             <a id="tv-external-link" href="#" target="_blank" class="chart-type-btn flex items-center gap-1 ml-2 font-bold" style="border-color:rgba(0,226,144,0.35);color:#00e290">
@@ -1181,6 +1144,20 @@
                 </div>
               </div>
 
+              <!-- Latest Chart Events Card -->
+              <div id="chart-events-card" class="glass-card rounded-2xl p-5 hover-lift hidden" style="border-left: 4px solid #eab308">
+                <h3 class="font-bold text-base mb-3 flex items-center gap-2" style="color:var(--text)">
+                  <span class="material-symbols-outlined" style="color:#eab308">timeline</span>
+                  Latest Chart Events (Market Closed)
+                </h3>
+                <div class="text-3xs font-mono mb-2.5" style="color:var(--text-dim)">
+                  Showing the latest sequence of chronological events recorded from chart data:
+                </div>
+                <div id="chart-events-timeline" class="space-y-3 font-mono text-xs border-l-2 ml-2 pl-3 py-1" style="border-color:rgba(255,255,255,0.08)">
+                  <!-- Generated Timeline events -->
+                </div>
+              </div>
+
               <!-- Intelligence Feed & Sentiment -->
               <div class="glass-card rounded-2xl p-5 hover-lift">
                 <h3 class="font-bold text-base mb-3 flex items-center gap-2" style="color:var(--text)">
@@ -1218,16 +1195,7 @@
             <div id="main-chart" style="min-height:300px;"></div>
           </div>
 
-          <!-- ReAct Agent Logs -->
-          <div class="glass-card rounded-2xl p-5 hover-lift">
-            <h3 class="font-bold text-base mb-3 flex items-center gap-2" style="color:var(--text)">
-              <span class="material-symbols-outlined" style="color:#00e290">memory</span>
-              ReAct Agent Execution Logs
-            </h3>
-            <div id="react-terminal" class="rounded-xl p-4 font-mono text-xs min-h-24 max-h-48 overflow-y-auto space-y-1" style="background:rgba(0,0,0,0.35);color:var(--text-dim)">
-              <div class="italic">Awaiting agent execution...</div>
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -1716,9 +1684,16 @@
                     <select id="settings-chart-style" class="cyber-input w-full px-3 py-2 rounded-xl font-mono text-sm cursor-pointer" onchange="tvStyle=this.value">
                       <option value="1">Candlestick</option><option value="8">Heikin Ashi</option>
                       <option value="0">Bars (OHLC)</option><option value="9">Hollow Candles</option>
-                      <option value="2">Line</option><option value="3">Area</option>
+                      <option value="2">Line</option><option value="3" selected>Area</option>
                       <option value="10">Baseline</option><option value="5">Renko</option>
                     </select>
+                  </div>
+                  
+                  <!-- AI Assistant Settings -->
+                  <div class="border-t pt-4 mt-4" style="border-color:var(--border)">
+                    <label class="text-xs font-mono uppercase block mb-1.5" style="color:var(--text-dim)">User Gemini API Key</label>
+                    <input id="settings-gemini-key" type="password" class="cyber-input w-full px-3 py-2 rounded-xl text-sm font-mono" placeholder="AI Key (AIzaSy...)" onchange="saveGeminiKey(this.value)">
+                    <p class="text-3xs font-mono mt-1" style="color:var(--text-muted)">Your API key is saved locally in your browser and sent directly in chat requests. Obtain a free key from Google AI Studio.</p>
                   </div>
                   <div>
                     <label class="text-xs font-mono uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Default Interval</label>
@@ -1740,7 +1715,66 @@
     <!-- MOBILE BOTTOM NAV -->
     <nav class="md:hidden flex justify-around items-center h-16 border-t shrink-0 z-30" id="mobile-bottom-nav" style="background:var(--sidebar-bg);border-color:var(--border)"></nav>
 
-  </div><!-- /right column -->
+  </div><!-- /main-workspace -->
+
+  <!-- KAREN ASSISTANT PANEL SIDE WINDOW -->
+  <aside id="karen-widget" class="karen-chat-widget flex flex-col">
+    <div class="karen-header">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-[#00e290]">
+          <span class="material-symbols-outlined text-sm">smart_toy</span>
+        </div>
+        <div>
+          <div class="text-xs font-mono font-bold" style="color:var(--text)">Karen AI Assistant</div>
+          <div class="flex items-center gap-1">
+            <span style="width:6px;height:6px;border-radius:50%;background:#00e290;display:inline-block"></span>
+            <span class="text-3xs font-mono" style="color:var(--text-dim)">Platform Core Agent</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="toggleKarenChat()" class="text-xs hover:opacity-80 flex items-center" style="color:var(--text-dim)">
+        <span class="material-symbols-outlined" style="font-size:18px">close</span>
+      </button>
+    </div>
+    <div class="karen-messages flex-1" id="karen-messages-log">
+      <div class="karen-msg karen flex gap-3.5 items-start">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-[#00e290] shrink-0">
+          <span class="material-symbols-outlined text-sm">smart_toy</span>
+        </div>
+        <div class="flex-1 min-w-0 space-y-1">
+          <div class="text-[10px] font-mono text-dim tracking-wider">Karen AI</div>
+          <div class="text-sm text-text leading-relaxed markdown-body">
+            <p>Hi! I'm <strong>Karen</strong>, your TradeForecast AI trading assistant. 🤖</p>
+            <p>I can help you navigate the platform, check portfolios, place paper trades, scan indicators, and predict asset trends.</p>
+            <p>What can I do for you today?</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="karen-typing-container" id="karen-typing-indicator">
+      <div class="karen-typing">
+        <div class="karen-typing-dot"></div>
+        <div class="karen-typing-dot"></div>
+        <div class="karen-typing-dot"></div>
+      </div>
+    </div>
+    <div class="karen-chips">
+      <div class="karen-chip" onclick="submitKarenQuery('📊 Predict RELIANCE.NS')">📊 Predict Reliance</div>
+      <div class="karen-chip" onclick="submitKarenQuery('💼 Show my portfolio')">💼 My Portfolio</div>
+      <div class="karen-chip" onclick="submitKarenQuery('🔍 Bullish stocks')">🔍 Top setups</div>
+      <div class="karen-chip" onclick="submitKarenQuery('💸 Reset account')">💸 Reset Account</div>
+      <div class="karen-chip" onclick="submitKarenQuery('❓ Help')">❓ Help</div>
+    </div>
+    <div class="karen-input-area">
+      <div class="karen-input-box-wrap">
+        <input type="text" class="karen-input" id="karen-text-input" placeholder="Ask Karen to do something..." onkeydown="handleKarenKey(event)">
+        <button onclick="sendKarenMessage()" class="flex items-center justify-center p-1.5 rounded-xl text-accent hover:opacity-80">
+          <span class="material-symbols-outlined" style="font-size:18px">send</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
 </div><!-- /main layout -->
 
 <script>
@@ -1771,7 +1805,7 @@ let paperPortfolioCurrency = '₹';
 // TradingView state
 let tvSymbol  = 'RELIANCE.NS';
 let tvInterval = '1d';
-let tvStyle    = '1';
+let tvStyle    = '3';
 let currentTheme = localStorage.getItem('nq_theme') || 'dark';
 let activeChartMode = 'ai'; // 'ai' or 'interactive'
 
@@ -1814,9 +1848,6 @@ function applyTheme(t) {
 }
 function toggleTheme() { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); }
 
-// ─────────────────────────────────────────────────────────
-// AUTH
-// ─────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────
 // AUTH
 // ─────────────────────────────────────────────────────────
@@ -1948,6 +1979,16 @@ function doLogout() {
   document.getElementById('login-pass').value = '';
 }
 
+function saveGeminiKey(key) {
+  localStorage.setItem('nq_gemini_key', key.trim());
+}
+
+function loadGeminiKey() {
+  const key = localStorage.getItem('nq_gemini_key') || '';
+  const el = document.getElementById('settings-gemini-key');
+  if (el) el.value = key;
+}
+
 function updateUserUI(user) {
   const name = user.name || user.username || 'Trader';
   const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
@@ -1956,6 +1997,8 @@ function updateUserUI(user) {
   document.getElementById('settings-username').textContent = name;
   document.getElementById('user-avatar-fallback').textContent = initials;
   document.getElementById('settings-avatar').textContent = initials;
+  
+  loadGeminiKey();
   
   const userInfo = document.getElementById('settings-user-info');
   if (userInfo) {
@@ -2159,6 +2202,7 @@ const NAV_ITEMS = [
   { id:'settings',    icon:'settings',          label:'Settings',     mobileLabel:'Config'  },
 ];
 let currentPage = 'dashboard';
+let isNavigating = false;
 
 function buildNav() {
   const desk = document.getElementById('desktop-nav-links');
@@ -2199,9 +2243,14 @@ function buildNav() {
 }
 
 function navigateTo(pageId, fromTrigger = false) {
+  if (isNavigating) return;
+  isNavigating = true;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById('page-'+pageId);
-  if (!target) return;
+  if (!target) {
+    isNavigating = false;
+    return;
+  }
   target.classList.add('active');
   currentPage = pageId;
   const item = NAV_ITEMS.find(n => n.id === pageId);
@@ -2210,10 +2259,17 @@ function navigateTo(pageId, fromTrigger = false) {
   document.getElementById('notif-panel').classList.remove('open');
   closeMobileNav();
   target.scrollTop = 0;
+  
+  if (window.location.hash !== '#' + pageId) {
+    window.location.hash = pageId;
+  }
+
   // Init TV chart when Predictions page is shown
   if (pageId === 'predictions' && !lwChart && !fromTrigger) triggerPrediction(tvSymbol);
   // Fetch paper trading details when entering the Trade tab
   if (pageId === 'screener') loadPaperTrading();
+  
+  isNavigating = false;
 }
 
 function openMobileNav()  { document.getElementById('mobile-nav').classList.add('open'); }
@@ -2797,6 +2853,115 @@ function renderPrediction(data, ticker) {
     const chgEl = document.getElementById(`${pfx}-chg`);
     if (chgEl) { chgEl.textContent = dir; chgEl.style.color = col; }
   }
+
+  renderLatestChartEvents(hvp, sym, dir, forecast);
+}
+
+function renderLatestChartEvents(hvp, sym, dir, forecast) {
+  const card = document.getElementById('chart-events-card');
+  const timeline = document.getElementById('chart-events-timeline');
+  if (!card || !timeline) return;
+
+  // Detect market closed status: weekend or outside active market hours (standard 9 to 6 check)
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const closedWeekend = (day === 0 || day === 6);
+  const closedHours = (hour < 9 || hour >= 18);
+  const isClosed = closedWeekend || closedHours;
+
+  if (!isClosed || !hvp.length) {
+    card.classList.add('hidden');
+    return;
+  }
+
+  card.classList.remove('hidden');
+
+  let events = [];
+
+  // 1. Calculate Peak High and Support Low over last 15 periods
+  const last15 = hvp.slice(-15);
+  let maxVal = -Infinity, maxDate = '';
+  let minVal = Infinity, minDate = '';
+  last15.forEach(pt => {
+    const val = pt.actual || pt.close || 0;
+    if (val > maxVal) { maxVal = val; maxDate = pt.date; }
+    if (val < minVal) { minVal = val; minDate = pt.date; }
+  });
+
+  if (maxVal > -Infinity) {
+    events.push({
+      date: maxDate,
+      type: 'peak',
+      desc: `Reached local peak high of <span style="color:#52ffac;font-weight:bold">${sym}${maxVal.toFixed(2)}</span>`,
+      icon: 'arrow_upward',
+      col: '#52ffac'
+    });
+  }
+  if (minVal < Infinity) {
+    events.push({
+      date: minDate,
+      type: 'support',
+      desc: `Found local support floor at <span style="color:#60a5fa;font-weight:bold">${sym}${minVal.toFixed(2)}</span>`,
+      icon: 'arrow_downward',
+      col: '#60a5fa'
+    });
+  }
+
+  // 2. Add last 3 sequential days closing changes
+  const recent = hvp.slice(-4);
+  for (let i = 1; i < recent.length; i++) {
+    const prev = recent[i - 1];
+    const curr = recent[i];
+    const prevClose = prev.actual || prev.close || 0;
+    const currClose = curr.actual || curr.close || 0;
+    if (prevClose > 0 && currClose > 0) {
+      const diffPct = ((currClose - prevClose) / prevClose) * 100;
+      const col = diffPct >= 0 ? '#52ffac' : '#ff5050';
+      const indicator = diffPct >= 0 ? '▲' : '▼';
+      events.push({
+        date: curr.date,
+        type: 'price',
+        desc: `${indicator} Closed at ${sym}${currClose.toFixed(2)} (${diffPct >= 0 ? '+' : ''}${diffPct.toFixed(2)}%)`,
+        icon: 'candlestick_chart',
+        col: col
+      });
+    }
+  }
+
+  // 3. Add AI consensus target forecast
+  if (forecast > 0) {
+    events.push({
+      date: 'consensus',
+      type: 'ai',
+      desc: `🤖 AI targets consensus price of <span style="color:#eab308;font-weight:bold">${sym}${forecast.toFixed(2)}</span> (consensus: ${dir})`,
+      icon: 'smart_toy',
+      col: '#eab308'
+    });
+  }
+
+  // Sort events chronologically. Place 'consensus' at the end.
+  events.sort((a, b) => {
+    if (a.date === 'consensus') return 1;
+    if (b.date === 'consensus') return -1;
+    return new Date(a.date) - new Date(b.date);
+  });
+
+  // Render events as timeline HTML
+  timeline.innerHTML = events.map(e => {
+    const displayDate = e.date === 'consensus' ? 'Target' : e.date;
+    return `
+      <div class="relative pl-5 pb-2">
+        <div class="absolute -left-[19px] top-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center bg-black border border-white/10" style="border-color:${e.col}">
+          <span class="material-symbols-outlined text-[9px]" style="color:${e.col}">${e.icon}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-bold text-3xs opacity-50 uppercase">${displayDate}</span>
+        </div>
+        <div class="text-2xs mt-0.5" style="color:var(--text-dim)">${e.desc}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function formatAgentLog(line) {
@@ -3103,53 +3268,75 @@ async function loadPaperTrading() {
           });
         }
       } catch (e) {
-        console.error('Failed to sync client backup with database:', e);
+       function fillPTOrderForm(stockName, direction, qty, price) {
+  document.getElementById('pt-order-ticker').value = stockName;
+  document.getElementById('pt-order-direction').value = direction;
+  document.getElementById('pt-order-qty').value = qty;
+  document.getElementById('pt-order-price').value = price;
+  updatePTOrderCosts();
+  checkPTTickerPrice(false); // Update AI consensus label without overriding the price!
+}
+
+async function checkPTTickerPrice(fetchPrice = true) {
+  const tickerInput = document.getElementById('pt-order-ticker');
+  const rawInput = tickerInput.value.trim();
+  if (!rawInput) return;
+
+  const ticker = resolveTicker(rawInput);
+  const priceInput = document.getElementById('pt-order-price');
+  const adviseEl = document.getElementById('pt-ai-advise');
+  
+  if (fetchPrice) {
+    priceInput.placeholder = 'Fetching live quote...';
+    // Fast price quote first!
+    try {
+      const fastRes = await fetch(`${API_BASE}/api/ticker-prices?tickers=${encodeURIComponent(ticker)}`);
+      if (fastRes.ok) {
+        const fastData = await fastRes.json();
+        if (fastData && fastData[ticker] && fastData[ticker].price) {
+          priceInput.value = fastData[ticker].price;
+          updatePTOrderCosts();
+        }
       }
+    } catch(e) {
+      console.error("Fast price quote failed:", e);
     }
+  }
+  
+  adviseEl.innerHTML = '<div class="spinner text-xs mb-1"></div>Calculating AI consensus trajectory...';
 
-    const res = await fetch(`${API_BASE}/api/paper/portfolio?username=${encodeURIComponent(username)}`);
-    if (!res.ok) throw new Error('Failed to load portfolio');
+  try {
+    const res = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(ticker)}?timeframe=1M`);
+    if (!res.ok) throw new Error('Ticker not found');
     const data = await res.json();
-
-    // Render Balances
-    const symbol = data.currency || '₹';
-    document.getElementById('pt-cash-balance').textContent = `${symbol}${data.cash_balance.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
-    document.getElementById('pt-portfolio-value').textContent = `${symbol}${data.portfolio_value.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
     
-    const pnlVal = data.unrealized_pnl;
-    const pnlEl = document.getElementById('pt-unrealized-pnl');
-    const pnlCard = document.getElementById('pt-pnl-card');
-    
-    pnlEl.textContent = `${pnlVal >= 0 ? '+' : ''}${symbol}${pnlVal.toLocaleString('en-IN', {maximumFractionDigits:2})}`;
-    if (pnlVal > 0) {
-      pnlEl.style.color = '#52ffac';
-      pnlCard.style.borderLeftColor = '#52ffac';
-    } else if (pnlVal < 0) {
-      pnlEl.style.color = '#ff8080';
-      pnlCard.style.borderLeftColor = '#ff8080';
-    } else {
-      pnlEl.style.color = 'var(--text-dim)';
-      pnlCard.style.borderLeftColor = 'var(--border)';
+    if (fetchPrice && !priceInput.value) {
+      priceInput.value = data.current_price;
     }
+    updatePTOrderCosts();
 
-    // Render stats
-    document.getElementById('pt-sharpe-ratio').textContent = data.sharpe_ratio.toFixed(2);
-    document.getElementById('pt-win-rate').textContent = `${data.win_rate.toFixed(1)}%`;
-    document.getElementById('pt-metrics-drawdown').textContent = `${data.max_drawdown.toFixed(1)}%`;
+    const direction = data.prediction_direction;
+    const confidence = data.confidence_score;
+    const col = direction === 'Bullish' ? '#52ffac' : direction === 'Bearish' ? '#ff5050' : 'var(--text-dim)';
+    
+    adviseEl.innerHTML = `AI Consensus: <span class="font-bold" style="color:${col}">${direction}</span> with <span class="font-bold" style="color:${col}">${confidence}% confidence</span>. Linear Trend Model suggests a target of ${data.currency_symbol}${formatVal(data.forecast_price, data.currency_symbol, 2)}.`;
+  } catch (e) {
+    if (fetchPrice && !priceInput.value) {
+      priceInput.placeholder = 'Error';
+    }
+    adviseEl.textContent = 'Could not fetch price/predictions for ticker. Ensure it is valid.';
+  }
+}
 
-    // Render Positions
-    const posList = document.getElementById('pt-positions-list');
-    posList.innerHTML = '';
-    if (!data.positions || !data.positions.length) {
-      posList.innerHTML = `<tr><td colspan="6" class="text-center py-6" style="color:var(--text-dim)">No active positions. Buy a stock to get started!</td></tr>`;
-    } else {
-      data.positions.forEach(pos => {
-        const isProfit = pos.unrealized_pnl >= 0;
-        const pnlCol = isProfit ? '#52ffac' : '#ff8080';
-        const stockName = getStockName(pos.ticker);
-        posList.insertAdjacentHTML('beforeend', `
-          <tr class="border-b" style="border-color:var(--border)">
-            <td class="py-2.5 pr-4 font-bold text-left" style="color:var(--text)">${stockName}</td>
+function updatePTOrderCosts() {
+  const qty = parseFloat(document.getElementById('pt-order-qty').value) || 0;
+  const price = parseFloat(document.getElementById('pt-order-price').value) || 0;
+  
+  const estCost = qty * price;
+  const symbol = paperPortfolioCurrency || '₹';
+
+  document.getElementById('pt-order-est-cost').textContent = `${symbol}${formatVal(estCost, symbol, 2)}`;
+}ss="py-2.5 pr-4 font-bold text-left" style="color:var(--text)">${stockName}</td>
             <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${formatVal(pos.average_price, symbol, 2)}</td>
             <td class="py-2.5 pr-4 text-right font-semibold" style="color:var(--text)">${pos.quantity}</td>
             <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${formatVal(pos.current_price, symbol, 2)}</td>
@@ -3606,10 +3793,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Build nav
   buildNav();
-  navigateTo('dashboard');
+
+  // Routing initialization
+  const initialPage = window.location.hash.substring(1) || 'dashboard';
+  navigateTo(initialPage);
+
+  window.addEventListener('hashchange', () => {
+    const pageId = window.location.hash.substring(1) || 'dashboard';
+    navigateTo(pageId);
+  });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeTerminal(); closeMobileNav(); }
+    if (e.key === 'Escape') { closeMobileNav(); }
   });
 
   // Auth check
@@ -3670,12 +3865,16 @@ function formatKarenMarkdown(md) {
     .replace(/\r\n/g, "\n")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, "<code class='px-1.5 py-0.5 rounded bg-black/20 font-mono text-3xs'>$1</code>")
-    .replace(/^### (.*$)/gim, '<h4 class="text-xs font-mono font-bold mt-2 mb-1">$1</h4>')
-    .replace(/^#### (.*$)/gim, '<h5 class="text-2xs font-mono font-bold mt-2 mb-1">$1</h5>')
-    .replace(/^\s*-\s+(.*$)/gim, '<li class="ml-4 list-disc text-3xs font-mono">$1</li>')
-    .replace(/^\s*\*\s+(.*$)/gim, '<li class="ml-4 list-disc text-3xs font-mono">$1</li>')
-    .split("\n\n").map(p => p.trim().startsWith("<") ? p : `<p>${p}</p>`).join("");
+    .replace(/`([^`]+)`/g, "<code class='px-1.5 py-0.5 rounded bg-black/20 font-mono text-xs text-accent'>$1</code>")
+    .replace(/^### (.*$)/gim, '<h4 class="text-sm font-bold mt-4 mb-2 text-accent border-b border-white/5 pb-1">$1</h4>')
+    .replace(/^#### (.*$)/gim, '<h5 class="text-xs font-bold mt-3 mb-1 text-accent">$1</h5>')
+    .replace(/^\s*-\s+(.*$)/gim, '<li class="ml-5 list-disc text-sm my-1">$1</li>')
+    .replace(/^\s*\*\s+(.*$)/gim, '<li class="ml-5 list-disc text-sm my-1">$1</li>')
+    .split("\n\n").map(p => {
+      p = p.trim();
+      if (!p) return "";
+      return p.startsWith("<") ? p : `<p class="mb-3 leading-relaxed">${p}</p>`;
+    }).join("");
 }
 
 function formatMarkdownInline(txt) {
@@ -3687,14 +3886,29 @@ function formatMarkdownInline(txt) {
 
 function toggleKarenChat() {
   const widget = document.getElementById('karen-widget');
+  const sidebar = document.getElementById('sidebar');
+  const bubble = document.getElementById('karen-bubble');
+  
   if (widget) {
     widget.classList.toggle('active');
+    
     if (widget.classList.contains('active')) {
+      if (sidebar) sidebar.classList.add('sidebar-collapsed');
+      if (bubble) bubble.style.display = 'none';
+      
       const log = document.getElementById('karen-messages-log');
       if (log) log.scrollTop = log.scrollHeight;
       const inp = document.getElementById('karen-text-input');
       if (inp) inp.focus();
+    } else {
+      if (sidebar) sidebar.classList.remove('sidebar-collapsed');
+      if (bubble) bubble.style.display = 'flex';
     }
+    
+    // Trigger window resize to re-render charts to fit the new width!
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 310);
   }
 }
 
@@ -3719,8 +3933,9 @@ async function sendKarenMessage(overrideText = null) {
   const log = document.getElementById('karen-messages-log');
   if (!log) return;
   log.insertAdjacentHTML('beforeend', `
-    <div class="karen-msg user">
-      <p>${text}</p>
+    <div class="karen-msg user select-none">
+      <div class="text-[10px] font-mono text-accent opacity-60 mb-1 text-right">You</div>
+      <div class="whitespace-pre-wrap">${text}</div>
     </div>
   `);
   log.scrollTop = log.scrollHeight;
@@ -3732,11 +3947,14 @@ async function sendKarenMessage(overrideText = null) {
     const session = JSON.parse(sessionStorage.getItem('nq_auth') || localStorage.getItem('nq_auth') || '{}');
     if (session.username) activeUser = session.username;
   } catch(e) {}
+  
+  const customKey = localStorage.getItem('nq_gemini_key') || '';
   const payload = {
     username: activeUser,
     message: text,
     history: karenHistory,
-    active_ticker: tvSymbol
+    active_ticker: tvSymbol,
+    api_key: customKey || null
   };
   karenHistory.push({ role: 'user', content: text });
   try {
@@ -3752,8 +3970,16 @@ async function sendKarenMessage(overrideText = null) {
     const data = await res.json();
     const formattedHTML = formatKarenMarkdown(data.response);
     log.insertAdjacentHTML('beforeend', `
-      <div class="karen-msg karen">
-        ${formattedHTML}
+      <div class="karen-msg karen flex gap-3.5 items-start mt-2">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-[#00e290] shrink-0">
+          <span class="material-symbols-outlined text-sm">smart_toy</span>
+        </div>
+        <div class="flex-1 min-w-0 space-y-1">
+          <div class="text-[10px] font-mono text-dim tracking-wider">Karen AI</div>
+          <div class="text-sm text-text leading-relaxed markdown-body">
+            ${formattedHTML}
+          </div>
+        </div>
       </div>
     `);
     log.scrollTop = log.scrollHeight;
@@ -3766,8 +3992,16 @@ async function sendKarenMessage(overrideText = null) {
   } catch (error) {
     if (typing) typing.style.display = 'none';
     log.insertAdjacentHTML('beforeend', `
-      <div class="karen-msg karen">
-        <p style="color:#ff8080">⚠️ Sorry, I encountered an error: ${error.message}</p>
+      <div class="karen-msg karen flex gap-3.5 items-start mt-2">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-red-500/10 border border-red-500/20 text-red-500 shrink-0">
+          <span class="material-symbols-outlined text-sm">error</span>
+        </div>
+        <div class="flex-1 min-w-0 space-y-1">
+          <div class="text-[10px] font-mono text-red-500 tracking-wider">System Error</div>
+          <div class="text-sm text-red-400">
+            ⚠️ Sorry, I encountered an error: ${error.message}
+          </div>
+        </div>
       </div>
     `);
     log.scrollTop = log.scrollHeight;
@@ -3778,50 +4012,6 @@ async function sendKarenMessage(overrideText = null) {
 <!-- KAREN AI ASSISTANT WIDGET -->
 <div class="karen-chat-bubble" onclick="toggleKarenChat()" id="karen-bubble" title="Chat with Karen AI">
   <span class="material-symbols-outlined" style="font-size:30px;font-weight:bold">forum</span>
-</div>
-<div class="karen-chat-widget flex flex-col" id="karen-widget">
-  <div class="karen-header">
-    <div class="flex items-center gap-2.5">
-      <span class="material-symbols-outlined" style="color:#00e290;font-size:24px">smart_toy</span>
-      <div>
-        <div class="text-xs font-mono font-bold" style="color:var(--text)">Karen AI Assistant</div>
-        <div class="flex items-center gap-1">
-          <span style="width:6px;height:6px;border-radius:50%;background:#00e290;display:inline-block"></span>
-          <span class="text-3xs font-mono" style="color:var(--text-dim)">Platform Core Agent</span>
-        </div>
-      </div>
-    </div>
-    <button onclick="toggleKarenChat()" class="text-xs hover:opacity-80" style="color:var(--text-dim)">
-      <span class="material-symbols-outlined" style="font-size:18px">close</span>
-    </button>
-  </div>
-  <div class="karen-messages flex-1" id="karen-messages-log">
-    <div class="karen-msg karen">
-      <p>Hi! I'm <strong>Karen</strong>, your TradeForecast AI trading assistant. 🤖</p>
-      <p>I can help you navigate the platform, place paper trades, review scanner recommendations, and fetch consensus predictions.</p>
-      <p>What can I do for you today?</p>
-    </div>
-  </div>
-  <div class="karen-typing-container" id="karen-typing-indicator">
-    <div class="karen-typing">
-      <div class="karen-typing-dot"></div>
-      <div class="karen-typing-dot"></div>
-      <div class="karen-typing-dot"></div>
-    </div>
-  </div>
-  <div class="karen-chips">
-    <div class="karen-chip" onclick="submitKarenQuery('📊 Predict RELIANCE.NS')">📊 Predict Reliance</div>
-    <div class="karen-chip" onclick="submitKarenQuery('💼 Show my portfolio')">💼 My Portfolio</div>
-    <div class="karen-chip" onclick="submitKarenQuery('🔍 Bullish stocks')">🔍 Top setups</div>
-    <div class="karen-chip" onclick="submitKarenQuery('💸 Reset account')">💸 Reset Account</div>
-    <div class="karen-chip" onclick="submitKarenQuery('❓ Help')">❓ Help</div>
-  </div>
-  <div class="karen-input-area">
-    <input type="text" class="karen-input font-mono" id="karen-text-input" placeholder="Ask Karen to do something..." onkeydown="handleKarenKey(event)">
-    <button onclick="sendKarenMessage()" class="flex items-center justify-center p-2 rounded-xl" style="background:rgba(0,226,144,0.1);color:#00e290">
-      <span class="material-symbols-outlined" style="font-size:18px">send</span>
-    </button>
-  </div>
 </div>
 </body>
 </html>

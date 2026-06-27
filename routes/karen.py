@@ -17,6 +17,7 @@ class ChatRequest(BaseModel):
     message: str
     history: list[ChatMessage] = []
     active_ticker: Optional[str] = None
+    api_key: Optional[str] = None
 
 @router.post("/api/chat/karen")
 async def chat_with_karen(req: ChatRequest):
@@ -32,7 +33,8 @@ async def chat_with_karen(req: ChatRequest):
             username=req.username,
             message=req.message,
             history=history_list,
-            active_ticker=req.active_ticker
+            active_ticker=req.active_ticker,
+            user_api_key=req.api_key
         )
         return response
     except Exception as e:

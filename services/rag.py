@@ -101,6 +101,43 @@ DOCUMENTS = [
             "ensuring trade systems remain operational at all times."
         ),
         "keywords": ["pricing", "price", "fast_info", "latency", "low-latency", "quote", "yfinance", "fallback", "quote", "outage"]
+    },
+    {
+        "id": "technical_indicators",
+        "title": "Technical Indicators & Consensus Strategy",
+        "content": (
+            "TradeForecast calculates several momentum, trend, and support indicators to form a trade consensus. "
+            "Moving Average Convergence Divergence (MACD) uses a fast period of 12, slow period of 26, and signal smoothing of 9. "
+            "Relative Strength Index (RSI) is calculated over a 14-day lookback window, flagging assets as overbought above 70 "
+            "and oversold below 30. Simple Moving Averages (SMA) are computed for 10-day (short-term) and 50-day (long-term) periods, "
+            "where an upward cross of the 10-day over the 50-day represents a bullish golden cross, and a downward cross represents "
+            "a bearish death cross. Support/Resistance pivots use standard High-Low-Close math."
+        ),
+        "keywords": ["macd", "rsi", "sma", "moving", "average", "golden", "cross", "indicator", "technical", "momentum", "overbought", "oversold"]
+    },
+    {
+        "id": "account_controls",
+        "title": "User Account & Portfolio Controls",
+        "content": (
+            "Users can manage their profile and virtual funds directly via the Settings panel and chat assistant. "
+            "The 'Default Investment Capital' field in Settings sets the starting paper cash balance. In chat, sending a command "
+            "like 'Set my cash to 100000' will immediately update the SQLite paper_portfolio balance table for the active user. "
+            "To wipe all positions and start fresh, the 'Reset Account' button triggers a complete database purge of active positions "
+            "and trade order history records for the user's account, restoring the default capital value."
+        ),
+        "keywords": ["capital", "reset", "cash", "balance", "virtual", "settings", "purge", "funds", "balance", "profile"]
+    },
+    {
+        "id": "backtester_math",
+        "title": "Backtesting Metrics & Simulation Math",
+        "content": (
+            "The TradeForecast backtester runs historical close data chronologically to evaluate AI trading strategies. "
+            "It computes key portfolio performance metrics: 1. Win Rate, calculated as the percentage of closed trades resulting in "
+            "a positive net return. 2. Maximum Drawdown, measuring the largest peak-to-trough percentage decline in portfolio value. "
+            "3. Sharpe Ratio, which calculates the excess return per unit of volatility (assuming a risk-free rate of 0% for simulation). "
+            "All portfolio metrics update in real-time as new virtual positions are closed."
+        ),
+        "keywords": ["backtest", "backtester", "sharpe", "drawdown", "win", "rate", "simulation", "performance", "return", "volatility"]
     }
 ]
 
