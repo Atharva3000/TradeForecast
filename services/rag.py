@@ -138,6 +138,51 @@ DOCUMENTS = [
             "All portfolio metrics update in real-time as new virtual positions are closed."
         ),
         "keywords": ["backtest", "backtester", "sharpe", "drawdown", "win", "rate", "simulation", "performance", "return", "volatility"]
+    },
+    {
+        "id": "karen_capabilities",
+        "title": "Karen AI Assistant — Capabilities & Commands",
+        "content": (
+            "Karen is TradeForecast's intelligent AI trading assistant. She can execute paper trades (Buy/Sell), "
+            "analyze portfolios, run AI price predictions, scan for bullish/bearish setups, reset accounts, "
+            "set custom cash balances, and answer general knowledge questions. Karen supports natural language "
+            "commands like 'Buy 10 Reliance', 'Predict TCS', 'Show my portfolio', 'Bullish stocks', "
+            "'Set my cash to 500000', and 'Reset my account'. When a Gemini API key is configured in Settings, "
+            "Karen can also answer coding questions, math problems, science queries, and general knowledge "
+            "just like ChatGPT, Claude, or Gemini. Karen uses GitHub-flavored markdown for formatting "
+            "including tables, code blocks, and bullet points."
+        ),
+        "keywords": ["karen", "assistant", "ai", "bot", "chat", "command", "capability", "feature", "help", "gemini", "api", "key"]
+    },
+    {
+        "id": "market_concepts",
+        "title": "Stock Market Fundamentals & Terminology",
+        "content": (
+            "Key stock market concepts used across TradeForecast: "
+            "P/E Ratio (Price-to-Earnings) measures a stock's price relative to its earnings per share — lower P/E may indicate undervaluation. "
+            "Market Capitalization is the total market value of a company's outstanding shares (price × shares outstanding). "
+            "Dividends are periodic cash payments from companies to shareholders, expressed as Dividend Yield (annual dividend / stock price). "
+            "IPO (Initial Public Offering) is when a private company first sells shares to the public. "
+            "Bull Market refers to sustained price increases (typically 20%+ from recent lows), while Bear Market refers to sustained declines (20%+ from recent highs). "
+            "Volume measures the number of shares traded in a given period — high volume confirms price movements. "
+            "Support and Resistance are price levels where buying or selling pressure historically reverses direction."
+        ),
+        "keywords": ["pe", "ratio", "market", "cap", "capitalization", "dividend", "yield", "ipo", "bull", "bear", "volume", "support", "resistance", "fundamentals"]
+    },
+    {
+        "id": "platform_architecture",
+        "title": "TradeForecast Platform Architecture & Data Flow",
+        "content": (
+            "TradeForecast is built with a FastAPI Python backend and a single-page HTML/JS frontend. "
+            "Data flows as follows: 1. Stock prices are fetched from Yahoo Finance (yfinance library) via fast_info for real-time quotes "
+            "and historical downloads for chart data. 2. Technical indicators (SMA, RSI, MACD) are computed server-side using pandas/numpy. "
+            "3. Price predictions use a Ridge Regression model from scikit-learn with StandardScaler normalization. "
+            "4. The frontend renders charts using TradingView Lightweight Charts library and TradingView widget. "
+            "5. Paper trading data persists in SQLite (users.db) with localStorage backup for serverless environments. "
+            "6. Karen AI assistant uses Google Gemini API (gemini-1.5-flash model) for natural language responses, "
+            "enhanced by an internal RAG (Retrieval-Augmented Generation) system that provides platform-specific context."
+        ),
+        "keywords": ["architecture", "fastapi", "backend", "frontend", "yfinance", "yahoo", "data", "flow", "pipeline", "api", "sqlite", "lightweight", "charts"]
     }
 ]
 

@@ -332,7 +332,7 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      background: var(--bg-raised);
+      background: var(--bg);
       border-left: 1px solid transparent;
       transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), border-left-color 0.3s;
       overflow: hidden;
@@ -340,7 +340,7 @@
       flex-shrink: 0;
     }
     .karen-chat-widget.active {
-      width: 450px;
+      width: min(480px, 100vw - 48px);
       border-left: 1px solid var(--border);
     }
     @media (max-width: 768px) {
@@ -357,14 +357,14 @@
       }
     }
     .karen-header {
-      background: rgba(255, 255, 255, 0.02);
-      backdrop-filter: blur(10px);
+      background: var(--bg-raised);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      padding: 16px 20px;
+      padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 64px;
+      height: 56px;
       flex-shrink: 0;
     }
     .karen-messages {
@@ -373,50 +373,106 @@
       padding: 24px 20px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
       background: transparent;
     }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    .animate-fade-in-up { animation: fadeInUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    .karen-msg { font-size: 13px; line-height: 1.6; word-wrap: break-word; }
+    .animate-fade-in-up { animation: fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .karen-msg { font-size: 14px; line-height: 1.7; word-wrap: break-word; font-family: 'Inter', 'Plus Jakarta Sans', sans-serif; }
     .karen-msg.user {
       align-self: flex-end;
       background: rgba(0, 226, 144, 0.08);
-      border: 1px solid rgba(0, 226, 144, 0.20);
+      border: 1px solid rgba(0, 226, 144, 0.18);
       color: var(--text);
-      border-radius: 18px;
+      border-radius: 20px;
       border-bottom-right-radius: 4px;
-      padding: 12px 16px;
+      padding: 12px 18px;
       max-width: 85%;
+      font-size: 14px;
     }
-    .karen-msg.karen { align-self: flex-start; background: transparent; border: none; color: var(--text); max-width: 100%; width: 100%; }
-    .markdown-body p { margin-bottom: 12px; }
+    .karen-msg.karen {
+      align-self: flex-start; background: transparent; border: none;
+      color: var(--text); max-width: 100%; width: 100%;
+    }
+    .markdown-body { font-size: 14px; line-height: 1.7; }
+    .markdown-body p { margin-bottom: 14px; }
     .markdown-body p:last-child { margin-bottom: 0; }
-    .markdown-body ul, .markdown-body ol { margin-top: 8px; margin-bottom: 8px; padding-left: 20px; }
-    .markdown-body li { margin-bottom: 4px; list-style-type: disc; }
+    .markdown-body ul, .markdown-body ol { margin-top: 8px; margin-bottom: 12px; padding-left: 22px; }
+    .markdown-body ol { list-style-type: decimal; }
+    .markdown-body ul li { list-style-type: disc; }
+    .markdown-body li { margin-bottom: 6px; font-size: 13.5px; }
+    .markdown-body h2 { font-size: 16px; font-weight: 700; margin: 16px 0 8px; color: var(--text); }
+    .markdown-body h3, .markdown-body h4 { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: var(--text); }
+    .markdown-body h5 { font-size: 12px; font-weight: 600; margin: 10px 0 4px; color: var(--text); }
+    .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     .markdown-body table { width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 12px; font-size: 12px; }
     .markdown-body th, .markdown-body td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
     .markdown-body th { background: rgba(255, 255, 255, 0.03); font-weight: 600; }
-    .karen-input-area { padding: 16px 20px; border-top: 1px solid var(--border); background: rgba(255, 255, 255, 0.005); flex-shrink: 0; }
+    .markdown-body .karen-code-block {
+      background: #0d1117; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+      margin: 12px 0; overflow: hidden; font-size: 0;
+    }
+    [data-theme="light"] .markdown-body .karen-code-block { background: #f6f8fa; border-color: rgba(0,0,0,0.1); }
+    .karen-code-block-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px; font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-weight: 500;
+    }
+    [data-theme="light"] .karen-code-block-header { background: rgba(0,0,0,0.03); border-bottom-color: rgba(0,0,0,0.06); }
+    .karen-code-block-header button {
+      background: transparent; border: 1px solid var(--border); border-radius: 6px;
+      padding: 3px 10px; font-size: 11px; color: var(--text-dim); cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: all 0.15s;
+    }
+    .karen-code-block-header button:hover { background: rgba(0,226,144,0.08); color: #00e290; border-color: rgba(0,226,144,0.3); }
+    .karen-code-block pre {
+      margin: 0; padding: 14px 16px; overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.55;
+      color: #e6edf3; white-space: pre; tab-size: 4;
+    }
+    [data-theme="light"] .karen-code-block pre { color: #24292f; }
+    .markdown-body code:not(.karen-code-block pre code) {
+      background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #f97583;
+    }
+    [data-theme="light"] .markdown-body code:not(.karen-code-block pre code) { background: rgba(0,0,0,0.06); color: #cf222e; }
+    .karen-input-area {
+      padding: 16px 20px; border-top: 1px solid var(--border);
+      background: var(--bg-raised); flex-shrink: 0;
+    }
     .karen-input-box-wrap {
-      display: flex; align-items: center; background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border); border-radius: 16px; padding: 4px 12px;
+      display: flex; align-items: center;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 4px 6px 4px 16px;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .karen-input-box-wrap:focus-within { border-color: #00e290; box-shadow: 0 0 12px rgba(0, 226, 144, 0.15); }
-    .karen-input { flex: 1; border: none; background: transparent; color: var(--text); font-size: 13px; outline: none; padding: 8px 4px; }
-    .karen-input::placeholder { color: var(--text-dim); }
+    .karen-input-box-wrap:focus-within { border-color: #00e290; box-shadow: 0 0 16px rgba(0, 226, 144, 0.12); }
+    .karen-input {
+      flex: 1; border: none; background: transparent; color: var(--text);
+      font-size: 14px; outline: none; padding: 10px 4px;
+      font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+    }
+    .karen-input::placeholder { color: var(--text-muted); }
+    .karen-send-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #00e290, #00b478); color: #fff;
+      transition: all 0.2s; flex-shrink: 0;
+    }
+    .karen-send-btn:hover { transform: scale(1.08); box-shadow: 0 0 16px rgba(0,226,144,0.3); }
+    .karen-send-btn:active { transform: scale(0.95); }
     .karen-chips { display: flex; gap: 8px; overflow-x: auto; padding: 8px 20px; background: transparent; border-top: 1px solid transparent; flex-shrink: 0; }
     .karen-chips::-webkit-scrollbar { display: none; }
     .karen-chip {
       background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border);
-      color: var(--text-dim); padding: 6px 12px; border-radius: 20px;
-      font-size: 11px; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+      color: var(--text-dim); padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; cursor: pointer; white-space: nowrap; transition: all 0.2s;
+      font-family: 'Inter', sans-serif;
     }
-    .karen-chip:hover { background: rgba(0, 226, 144, 0.08); border-color: rgba(0, 226, 144, 0.25); color: #00e290; }
+    .karen-chip:hover { background: rgba(0, 226, 144, 0.08); border-color: rgba(0, 226, 144, 0.25); color: #00e290; transform: translateY(-1px); }
     .karen-typing-container { padding: 10px 20px; display: none; flex-shrink: 0; }
     .karen-typing { display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 8px 14px; gap: 4px; }
     .karen-typing-dot { width: 6px; height: 6px; border-radius: 50%; background: #00e290; animation: typing 1.4s infinite ease-in-out both; }
@@ -458,7 +514,7 @@
      LOGIN OVERLAY
 ══════════════════════════════════════════════════════ -->
 <div id="login-overlay">
-  <div class="login-card" style="max-width:440px">
+  <div class="login-card">
     <!-- Logo -->
     <div class="text-center mb-6">
       <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-accent-glow border border-accent/30 mb-3 glow-emerald">
@@ -909,7 +965,7 @@
             </div>
 
             <!-- AI Prediction Chart Container -->
-            <div id="tv-chart-container" class="flex-1" style="height:520px">
+            <div id="tv-chart-container" class="flex-1" style="min-height:380px;height:calc(100vh - 400px);max-height:640px">
               <div class="flex items-center justify-center h-full text-sm font-mono" style="color:var(--text-dim)">
                 <div class="text-center">
                   <div class="spinner mx-auto mb-3"></div>
@@ -919,7 +975,7 @@
             </div>
 
             <!-- Official TradingView Interactive Chart Container -->
-            <div id="tv-interactive-container" class="flex-1 hidden" style="height:520px">
+            <div id="tv-interactive-container" class="flex-1 hidden" style="min-height:380px;height:calc(100vh - 400px);max-height:640px">
               <div class="flex items-center justify-center h-full text-sm font-mono" style="color:var(--text-dim)">
                 <div class="text-center">
                   <div class="spinner mx-auto mb-3"></div>
@@ -1587,7 +1643,6 @@
                     </div>
                     <p class="text-3xs font-mono mt-1" style="color:var(--text-muted)">Your API key is saved locally in your browser and sent directly in chat requests. Obtain a free key from Google AI Studio.</p>
                   </div>
-                  </div>
                   <div>
                     <label class="text-xs font-mono uppercase tracking-wider block mb-2" style="color:var(--text-dim)">Default Interval</label>
                     <select id="settings-interval" class="cyber-input w-full px-3 py-2 rounded-xl font-mono text-sm cursor-pointer" onchange="setTVInterval(this.value)">
@@ -1614,32 +1669,38 @@
   <aside id="karen-widget" class="karen-chat-widget flex flex-col">
     <div class="karen-header">
       <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-[#00e290]">
-          <span class="material-symbols-outlined text-sm">smart_toy</span>
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#00e290,#00b478)">
+          <span class="material-symbols-outlined text-white" style="font-size:18px">smart_toy</span>
         </div>
         <div>
-          <div class="text-xs font-mono font-bold" style="color:var(--text)">Karen AI Assistant</div>
+          <div class="text-sm font-semibold" style="color:var(--text);font-family:'Plus Jakarta Sans',sans-serif">Karen</div>
           <div class="flex items-center gap-1">
             <span style="width:6px;height:6px;border-radius:50%;background:#00e290;display:inline-block"></span>
-            <span class="text-3xs font-mono" style="color:var(--text-dim)">Platform Core Agent</span>
+            <span class="text-[10px]" style="color:var(--text-dim);font-family:'Inter',sans-serif">Online</span>
           </div>
         </div>
       </div>
-      <button onclick="toggleKarenChat()" class="text-xs hover:opacity-80 flex items-center" style="color:var(--text-dim)">
-        <span class="material-symbols-outlined" style="font-size:18px">close</span>
-      </button>
+      <div class="flex items-center gap-1">
+        <button onclick="clearKarenChat()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs hover:opacity-80 transition-all" style="color:var(--text-dim);background:rgba(255,255,255,0.03);border:1px solid var(--border)" title="New conversation">
+          <span class="material-symbols-outlined" style="font-size:15px">add</span>
+          <span style="font-family:'Inter',sans-serif;font-size:11px">New Chat</span>
+        </button>
+        <button onclick="toggleKarenChat()" class="flex items-center justify-center p-1.5 rounded-lg hover:opacity-80 transition-all" style="color:var(--text-dim)">
+          <span class="material-symbols-outlined" style="font-size:18px">close</span>
+        </button>
+      </div>
     </div>
     <div class="karen-messages flex-1" id="karen-messages-log">
       <div class="karen-msg karen flex gap-3.5 items-start">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-[#00e290] shrink-0">
-          <span class="material-symbols-outlined text-sm">smart_toy</span>
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:linear-gradient(135deg,#00e290,#00b478)">
+          <span class="material-symbols-outlined text-white" style="font-size:16px">smart_toy</span>
         </div>
         <div class="flex-1 min-w-0 space-y-1">
-          <div class="text-[10px] font-mono text-dim tracking-wider">Karen AI</div>
-          <div class="text-sm text-text leading-relaxed markdown-body">
-            <p>Hi! I'm <strong>Karen</strong>, your TradeForecast AI trading assistant. 🤖</p>
-            <p>I can help you navigate the platform, check portfolios, place paper trades, scan indicators, and predict asset trends.</p>
-            <p>What can I do for you today?</p>
+          <div class="text-[10px] font-semibold tracking-wider" style="color:var(--text-dim);font-family:'Inter',sans-serif">Karen</div>
+          <div class="text-sm leading-relaxed markdown-body" style="color:var(--text)">
+            <p>Hey there! 👋 I'm <strong>Karen</strong>, your AI trading assistant.</p>
+            <p>I can help you with trading, portfolio management, market analysis, or answer any question you have — just like ChatGPT or Claude.</p>
+            <p>What would you like to explore today?</p>
           </div>
         </div>
       </div>
@@ -1653,16 +1714,16 @@
     </div>
     <div class="karen-chips">
       <div class="karen-chip" onclick="submitKarenQuery('📊 Predict RELIANCE.NS')">📊 Predict Reliance</div>
-      <div class="karen-chip" onclick="submitKarenQuery('💼 Show my portfolio')">💼 My Portfolio</div>
-      <div class="karen-chip" onclick="submitKarenQuery('🔍 Bullish stocks')">🔍 Top setups</div>
-      <div class="karen-chip" onclick="submitKarenQuery('💸 Reset account')">💸 Reset Account</div>
+      <div class="karen-chip" onclick="submitKarenQuery('💼 Show my portfolio')">💼 Portfolio</div>
+      <div class="karen-chip" onclick="submitKarenQuery('🔍 Bullish stocks')">🔍 Top Setups</div>
+      <div class="karen-chip" onclick="submitKarenQuery('Write a Python function')">💻 Code Help</div>
       <div class="karen-chip" onclick="submitKarenQuery('❓ Help')">❓ Help</div>
     </div>
     <div class="karen-input-area">
       <div class="karen-input-box-wrap">
-        <input type="text" class="karen-input" id="karen-text-input" placeholder="Ask Karen to do something..." onkeydown="handleKarenKey(event)">
-        <button onclick="sendKarenMessage()" class="flex items-center justify-center p-1.5 rounded-xl text-accent hover:opacity-80">
-          <span class="material-symbols-outlined" style="font-size:18px">send</span>
+        <input type="text" class="karen-input" id="karen-text-input" placeholder="Message Karen..." onkeydown="handleKarenKey(event)">
+        <button onclick="sendKarenMessage()" class="karen-send-btn">
+          <span class="material-symbols-outlined" style="font-size:18px">arrow_upward</span>
         </button>
       </div>
     </div>
@@ -1749,10 +1810,19 @@ function togglePasswordVisibility(fieldId, btn = null) {
   if (!input) return;
   const isPass = input.type === 'password';
   input.type = isPass ? 'text' : 'password';
+  // Find the icon element — either from the passed button or from the parent
+  let icon = null;
   if (btn) {
-    const icon = btn.querySelector('.material-symbols-outlined');
-    if (icon) icon.textContent = isPass ? 'visibility_off' : 'visibility';
+    icon = btn.querySelector('.material-symbols-outlined');
+  } else {
+    // Find the toggle button sibling within the same parent container
+    const parent = input.parentElement;
+    if (parent) {
+      const siblingBtn = parent.querySelector('button');
+      if (siblingBtn) icon = siblingBtn.querySelector('.material-symbols-outlined');
+    }
   }
+  if (icon) icon.textContent = isPass ? 'visibility_off' : 'visibility';
 }
 
 // ─────────────────────────────────────────────────────────
@@ -3104,7 +3174,8 @@ function fillPTOrderForm(stockName, direction, qty, price) {
   document.getElementById('pt-order-qty').value = qty;
   document.getElementById('pt-order-price').value = price;
   updatePTOrderCosts();
-  checkPTTickerPrice(false); // Update AI consensus label without overriding the price!
+  // Fetch AI consensus asynchronously — don't block the form
+  setTimeout(() => checkPTTickerPrice(false), 0);
 }
 
 async function checkPTTickerPrice(fetchPrice = true) {
@@ -3506,6 +3577,17 @@ let karenHistory = [];
 
 function formatKarenMarkdown(md) {
   if (!md) return "";
+  
+  // Step 1: Extract fenced code blocks FIRST (before any other processing)
+  let codeBlocks = [];
+  md = md.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    const idx = codeBlocks.length;
+    const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    codeBlocks.push({ lang: lang || 'code', code: escapedCode });
+    return `__CODE_BLOCK_${idx}__`;
+  });
+  
+  // Step 2: Process tables
   let lines = md.split("\n");
   let inTable = false;
   let tableHTML = "";
@@ -3535,28 +3617,57 @@ function formatKarenMarkdown(md) {
     newLines.push(tableHTML);
   }
   let bodyText = newLines.join("\n");
-  return bodyText
+  
+  // Step 3: Apply markdown formatting
+  bodyText = bodyText
     .replace(/\r\n/g, "\n")
+    // Headings (process from most specific to least)
+    .replace(/^##### (.*$)/gim, '<h5>$1</h5>')
+    .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    // Horizontal rules
+    .replace(/^---$/gim, '<hr>')
+    // Bold and italic
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, "<code class='px-1.5 py-0.5 rounded bg-black/20 font-mono text-3xs'>$1</code>")
-    .replace(/^### (.*$)/gim, '<h4 class="text-xs font-mono font-bold mt-2 mb-1">$1</h4>')
-    .replace(/^#### (.*$)/gim, '<h5 class="text-2xs font-mono font-bold mt-2 mb-1">$1</h5>')
-    .replace(/^\s*-\s+(.*$)/gim, '<li class="ml-4 list-disc text-3xs font-mono">$1</li>')
-    .replace(/^\s*\*\s+(.*$)/gim, '<li class="ml-4 list-disc text-3xs font-mono">$1</li>')
-    .split("\n\n").map(p => p.trim().startsWith("<") ? p : `<p>${p}</p>`).join("");
+    // Inline code (not inside code blocks)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    // Ordered lists
+    .replace(/^\s*\d+\.\s+(.*$)/gim, '<li class="ml-4" style="list-style-type:decimal">$1</li>')
+    // Unordered lists
+    .replace(/^\s*[-*]\s+(.*$)/gim, '<li class="ml-4" style="list-style-type:disc">$1</li>');
+  
+  // Step 4: Wrap loose text in paragraphs
+  bodyText = bodyText
+    .split("\n\n")
+    .map(p => {
+      const trimmed = p.trim();
+      if (!trimmed) return '';
+      if (trimmed.startsWith("<")) return trimmed;
+      if (trimmed.startsWith("__CODE_BLOCK_")) return trimmed;
+      return `<p>${trimmed}</p>`;
+    })
+    .join("");
+  
+  // Step 5: Restore code blocks with styled containers
+  codeBlocks.forEach((block, idx) => {
+    const codeBlockHTML = `<div class="karen-code-block"><div class="karen-code-block-header"><span>${block.lang}</span><button onclick="navigator.clipboard.writeText(this.closest('.karen-code-block').querySelector('pre').textContent).then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button></div><pre><code>${block.code}</code></pre></div>`;
+    bodyText = bodyText.replace(`__CODE_BLOCK_${idx}__`, codeBlockHTML);
+  });
+  
+  return bodyText;
 }
 
 function formatMarkdownInline(txt) {
   return txt
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, "<code class='px-1 py-0.5 rounded bg-black/20 font-mono text-4xs'>$1</code>");
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
 function toggleKarenChat() {
   const widget = document.getElementById('karen-widget');
-  const workspace = document.getElementById('main-workspace');
   const sidebar = document.getElementById('sidebar');
   
   if (widget) {
@@ -3570,7 +3681,7 @@ function toggleKarenChat() {
       const log = document.getElementById('karen-messages-log');
       if (log) log.scrollTop = log.scrollHeight;
       const inp = document.getElementById('karen-text-input');
-      if (inp) inp.focus();
+      if (inp) setTimeout(() => inp.focus(), 350);
     } else {
       // Restore sidebar
       if (sidebar) sidebar.classList.remove('sidebar-collapsed');
@@ -3579,7 +3690,27 @@ function toggleKarenChat() {
     // Trigger window resize event to redraw Lightweight charts correctly!
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
-    }, 300);
+    }, 350);
+  }
+}
+
+function clearKarenChat() {
+  karenHistory = [];
+  const log = document.getElementById('karen-messages-log');
+  if (log) {
+    log.innerHTML = `
+      <div class="karen-msg karen flex gap-3.5 items-start animate-fade-in-up">
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:linear-gradient(135deg,#00e290,#00b478)">
+          <span class="material-symbols-outlined text-white" style="font-size:16px">smart_toy</span>
+        </div>
+        <div class="flex-1 min-w-0 space-y-1">
+          <div class="text-[10px] font-semibold tracking-wider" style="color:var(--text-dim);font-family:'Inter',sans-serif">Karen</div>
+          <div class="text-sm leading-relaxed markdown-body" style="color:var(--text)">
+            <p>Conversation cleared! ✨ What would you like to talk about?</p>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }
 
@@ -3643,12 +3774,12 @@ async function sendKarenMessage(overrideText = null) {
     const formattedHTML = formatKarenMarkdown(data.response);
     log.insertAdjacentHTML('beforeend', `
       <div class="karen-msg karen flex gap-3.5 items-start animate-fade-in-up">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-[#00e290] shrink-0">
-          <span class="material-symbols-outlined text-sm">smart_toy</span>
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:linear-gradient(135deg,#00e290,#00b478)">
+          <span class="material-symbols-outlined text-white" style="font-size:16px">smart_toy</span>
         </div>
         <div class="flex-1 min-w-0 space-y-1">
-          <div class="text-[10px] font-mono text-dim tracking-wider">Karen AI</div>
-          <div class="text-sm text-text leading-relaxed markdown-body">
+          <div class="text-[10px] font-semibold tracking-wider" style="color:var(--text-dim);font-family:'Inter',sans-serif">Karen</div>
+          <div class="text-sm leading-relaxed markdown-body" style="color:var(--text)">
             ${formattedHTML}
           </div>
         </div>
@@ -3664,12 +3795,12 @@ async function sendKarenMessage(overrideText = null) {
     if (typing) typing.style.display = 'none';
     log.insertAdjacentHTML('beforeend', `
       <div class="karen-msg karen flex gap-3.5 items-start animate-fade-in-up">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center bg-accent-glow border border-accent/20 text-red-400 shrink-0">
-          <span class="material-symbols-outlined text-sm">error</span>
+        <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style="background:rgba(255,80,80,0.15)">
+          <span class="material-symbols-outlined text-red-400" style="font-size:16px">error</span>
         </div>
         <div class="flex-1 min-w-0 space-y-1">
-          <div class="text-[10px] font-mono text-red-400 tracking-wider">Error</div>
-          <div class="text-sm text-red-400 font-mono leading-relaxed">
+          <div class="text-[10px] font-semibold tracking-wider" style="color:#ff8080;font-family:'Inter',sans-serif">Error</div>
+          <div class="text-sm leading-relaxed" style="color:#ff8080">
             ⚠️ Sorry, I encountered an error: ${error.message}
           </div>
         </div>

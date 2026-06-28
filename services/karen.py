@@ -170,7 +170,7 @@ def call_gemini_api(api_key: str, prompt: str, system_instruction: str) -> str:
             headers={"Content-Type": "application/json"},
             method="POST"
         )
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=30) as response:
             res_body = response.read().decode("utf-8")
             data = json.loads(res_body)
             candidates = data.get("candidates", [])
@@ -204,7 +204,7 @@ async def generate_karen_response(
     # -------------------------------------------------------------------------
     # RAG RETRIEVAL (Retrieve platform documentation matching user query)
     # -------------------------------------------------------------------------
-    rag_docs = retrieve_context(msg_clean, limit=1)
+    rag_docs = retrieve_context(msg_clean, limit=2)
     rag_context = ""
     if rag_docs:
         rag_context = "\n\nRelevant Platform Documentation Context:\n"
@@ -513,8 +513,10 @@ async def generate_karen_response(
             "You can answer ANY question the user asks (just like Claude, ChatGPT, or Gemini), including general questions, "
             "coding help, mathematical calculations, and general knowledge, while placing a strong emphasis on "
             "financial markets, trading advice, and supporting users on the TradeForecast platform. "
-            "Always output responses using clean, professional GitHub-flavored markdown. Use bullet points and tables when displaying data. "
-            "Keep answers concise. Refer to the active user session and context parameters below when formatting answers.\n\n"
+            "Always output responses using clean, professional GitHub-flavored markdown. Use proper fenced code blocks "
+            "with language identifiers (e.g. ```python) for code. Use bullet points and tables when displaying data. "
+            "Keep answers concise but thorough. If the user asks you to write code, always include it in a fenced code block. "
+            "Refer to the active user session and context parameters below when formatting answers.\n\n"
             f"Active User: {username}\n"
             f"Current Ticker Context: {active_ticker or 'None'}\n"
             f"Database Context JSON: {json.dumps(context_data)}"
@@ -531,12 +533,23 @@ async def generate_karen_response(
         gemini_response = call_gemini_api(api_key, prompt, system_instruction)
         
         if gemini_response and not gemini_response.startswith("*(Gemini API connection error)*"):
-            return {
-                "response": gemini_response,
-                "action_executed": action_executed,
-                "ticker_affected": ticker_affected,
-                "system_status": "llm_generated"
-            }
+            # If a local action was executed (trade, portfolio, prediction, etc.),
+            # prepend the structured local response and append Gemini's commentary
+            if action_executed and local_response:
+                combined = local_response + "\n\n---\n\n" + gemini_response
+                return {
+                    "response": combined,
+                    "action_executed": action_executed,
+                    "ticker_affected": ticker_affected,
+                    "system_status": "hybrid_generated"
+                }
+            else:
+                return {
+                    "response": gemini_response,
+                    "action_executed": action_executed,
+                    "ticker_affected": ticker_affected,
+                    "system_status": "llm_generated"
+                }
             
     # Fallback to RAG document if local_response is None and RAG matches
     if not local_response and rag_docs:
