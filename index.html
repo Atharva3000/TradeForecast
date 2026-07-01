@@ -3099,7 +3099,7 @@ async function loadPaperTrading() {
             <td class="py-2.5 pr-4 text-right" style="color:var(--text)">${symbol}${formatVal(pos.current_price, symbol, 2)}</td>
             <td class="py-2.5 pr-4 text-right font-bold" style="color:${pnlCol}">${isProfit ? '+' : ''}${symbol}${formatVal(pos.unrealized_pnl, symbol, 2)} (${isProfit ? '+' : ''}${pos.unrealized_pnl_percent.toFixed(1)}%)</td>
             <td class="py-2.5 text-right">
-              <button onclick="fillPTOrderForm('${stockName.replace(/'/g, "\\'")}', 'SELL', ${pos.quantity}, ${pos.current_price})" class="px-2.5 py-1 rounded-lg text-3xs font-bold uppercase transition-all" style="background:rgba(255,128,128,0.1);color:#ff8080;border:1px solid rgba(255,128,128,0.2)">
+              <button onclick="fillPTOrderForm('${pos.ticker}', 'SELL', ${pos.quantity}, ${pos.current_price})" class="px-2.5 py-1 rounded-lg text-3xs font-bold uppercase transition-all" style="background:rgba(255,128,128,0.1);color:#ff8080;border:1px solid rgba(255,128,128,0.2)">
                 Sell
               </button>
             </td>
@@ -3312,7 +3312,23 @@ async function resetPaperTrading() {
       body: JSON.stringify({ username: user.username })
     });
     if (res.ok) {
-      localStorage.removeItem(`nq_portfolio_${user.username}`);
+      // Set local backup to a clean default state to ensure it syncs to Vercel/ephemeral containers
+      const defaultCapital = user.investment_capital && user.investment_capital > 0 ? parseFloat(user.investment_capital) : 1000000.0;
+      let defaultCurrency = '₹';
+      if (user.country) {
+        const country = user.country.trim().toLowerCase();
+        if (country === 'us' || country === 'usa' || country === 'united states' || country === 'uk' || country === 'canada' || country === 'global') {
+          defaultCurrency = '$';
+        }
+      }
+      const cleanBackup = {
+        cash_balance: defaultCapital,
+        currency: defaultCurrency,
+        positions: [],
+        history: []
+      };
+      localStorage.setItem(`nq_portfolio_${user.username}`, JSON.stringify(cleanBackup));
+      
       alert('Virtual portfolio reset successfully!');
       await loadPaperTrading();
     } else {
